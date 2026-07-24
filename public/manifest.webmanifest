@@ -1,0 +1,26 @@
+{
+  "name": "毛孩生活中心",
+  "short_name": "毛孩生活",
+  "description": "毛孩照護提醒、健康紀錄與生活回憶的單機優先 App",
+  "lang": "zh-Hant",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fbf4e8",
+  "theme_color": "#fbf4e8",
+  "icons": [
+    {
+      "src": "/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
