@@ -3,7 +3,7 @@ import { CARE_ALERT_EVENT, type CareAlertDetail } from './audio-coordination'
 
 type Track = { id: string; title: string; subtitle: string; duration: string; file: string; coverClass: string }
 
-const mediaBaseUrl = (import.meta.env.VITE_MEDIA_BASE_URL || 'https://github.com/kevin00415-stack/pet-life-center-web/releases/download/media-v1').replace(/\/$/, '')
+const mediaBaseUrl = (import.meta.env.VITE_MEDIA_BASE_URL || 'https://raw.githubusercontent.com/kevin00415-stack/pet-life-center-web/main/external-media-source').replace(/\/$/, '')
 const tracks: Track[] = [
   { id: 'plc-001', title: 'Crystal Forest Drift', subtitle: '水晶森林漂流', duration: '4:08', file: `${mediaBaseUrl}/PLC-001-Crystal-Forest-Drift.mp3`, coverClass: 'crystal' },
   { id: 'plc-002', title: 'Forest Drift', subtitle: '森林', duration: '3:19', file: `${mediaBaseUrl}/PLC-002-Forest-Drift.mp3`, coverClass: 'forest' },
