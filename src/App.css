@@ -551,6 +551,71 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .cozy-home .game-actions b{font-size:14px}
 .cozy-home .game-actions small{font-size:11px}
 
+/* Direct-manipulation photo crop controls */
+.draggable-photo{
+  position:relative;
+  cursor:grab;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.draggable-photo.dragging{cursor:grabbing}
+.draggable-photo img{pointer-events:none}
+.draggable-photo:focus-visible{
+  outline:3px solid rgba(83,126,151,.5);
+  outline-offset:3px;
+}
+.drag-photo-hint{
+  position:absolute;
+  left:50%;
+  bottom:10px;
+  display:block!important;
+  transform:translateX(-50%);
+  border-radius:999px;
+  background:rgba(48,40,34,.72);
+  color:#fff;
+  padding:5px 10px;
+  font-size:12px!important;
+  font-weight:800;
+  line-height:1.2;
+  white-space:nowrap;
+  pointer-events:none;
+  backdrop-filter:blur(6px);
+}
+.crop-controls>p{
+  margin:0 0 10px;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.6;
+}
+.crop-controls label,.cover-controls label{
+  display:grid;
+  grid-template-columns:88px 1fr;
+  align-items:center;
+  gap:8px;
+}
+.crop-controls input[type=range],.cover-controls input[type=range]{
+  min-height:36px;
+  padding:0;
+  margin:0;
+  accent-color:var(--brand);
+}
+.crop-toolbar{
+  display:flex;
+  justify-content:flex-end;
+  margin:4px 0 8px;
+}
+.crop-toolbar button{
+  min-height:38px;
+  border:1px solid #d5c4ad;
+  border-radius:12px;
+  background:#fffaf2;
+  color:#66584d;
+  padding:0 13px;
+  font-size:13px;
+  font-weight:800;
+}
+
 @media(max-width:430px){
   .cozy-home .game-actions{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
   .cozy-home .game-actions button{min-height:145px;border-radius:17px;padding:6px 2px 9px}
