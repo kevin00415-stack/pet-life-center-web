@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'maohai-life-center-v20260724-1'
+const CACHE_VERSION = 'maohai-life-center-v20260727-2'
 const APP_SHELL = ['/', '/manifest.webmanifest', '/app-icon-192.png', '/app-icon-512.png', '/favicon.svg']
 
 self.addEventListener('install', (event) => {
