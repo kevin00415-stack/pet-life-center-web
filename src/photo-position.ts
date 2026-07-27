@@ -3,8 +3,16 @@ export type PhotoPosition = {
   y: number
 }
 
+export type PhotoTransform = PhotoPosition & {
+  zoom: number
+}
+
 function clamp(value: number) {
   return Math.min(100, Math.max(0, value))
+}
+
+export function centerPhotoTransform(): PhotoTransform {
+  return { x: 50, y: 50, zoom: 1 }
 }
 
 export function movePhotoPosition(

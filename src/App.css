@@ -555,12 +555,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .draggable-photo{
   position:relative;
   cursor:grab;
-  touch-action:none;
+  touch-action:none!important;
+  overscroll-behavior:contain;
   user-select:none;
   -webkit-user-select:none;
+  -webkit-touch-callout:none;
 }
 .draggable-photo.dragging{cursor:grabbing}
-.draggable-photo img{pointer-events:none}
+.draggable-photo *{touch-action:none!important}
+.draggable-photo img{
+  pointer-events:none;
+  -webkit-user-drag:none;
+}
+.pet-editor{overscroll-behavior:contain}
 .draggable-photo:focus-visible{
   outline:3px solid rgba(83,126,151,.5);
   outline-offset:3px;
