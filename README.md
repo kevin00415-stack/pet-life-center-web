@@ -21,13 +21,15 @@ npm run build
 
 ## 音樂檔
 
-為避免大型 MP3 被打包進 App，舒壓音樂採用延遲載入的外部網址。預設來源為 GitHub Release `media-v1`，也可以在 Cloudflare Pages 環境變數設定：
+目前三首舒壓音樂放在 `public/music/`，會隨 PWA 建置並由 Service Worker 預先快取，因此完成安裝與首次快取後可離線播放。三首 MP3 合計約 15 MB。
+
+未來官網音樂庫上線後，可以在 Cloudflare Pages 設定下列環境變數，改用外部曲目來源；下載到 App 音樂庫的流程會另外實作：
 
 ```text
 VITE_MEDIA_BASE_URL=https://your-media-host.example.com/music
 ```
 
-網址下必須包含：
+若設定外部網址，該網址下必須包含：
 
 - `PLC-001-Crystal-Forest-Drift.mp3`
 - `PLC-002-Forest-Drift.mp3`
