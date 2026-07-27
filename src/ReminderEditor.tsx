@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { FileAudio, Microphone, Play } from '@phosphor-icons/react'
 import type { CareReminder, Pet, ReminderKind, RepeatRule, VoiceClip } from './domain'
-import { kindIcons, kindLabels, localDateKey, repeatLabels } from './domain'
+import { kindLabels, localDateKey, repeatLabels } from './domain'
+import { kindIconAssets } from './reminder-kind-assets'
 
 type Props = { pets: Pet[]; initialKind: ReminderKind; voices: VoiceClip[]; onClose: () => void; onSave: (reminder: CareReminder, voice?: VoiceClip) => Promise<void> }
 const examples: Record<ReminderKind, string> = { medication: '心臟藥', feeding: '早餐', vet: '心臟科回診', vaccine: '年度疫苗', care: '量體重' }
@@ -103,7 +104,7 @@ export default function ReminderEditor({ pets, initialKind, voices, onClose, onS
     <section className="editor-sheet" role="dialog" aria-modal="true" aria-labelledby="editor-title">
       <header><div><span>LOCAL CARE REMINDER</span><h2 id="editor-title">新增照護提醒</h2></div><button className="close" onClick={onClose} aria-label="關閉">×</button></header>
       <form action={submit}>
-        <div className="kind-picker">{(Object.keys(kindLabels) as ReminderKind[]).map((item) => <button type="button" key={item} className={kind === item ? 'active' : ''} onClick={() => changeKind(item)}><i>{kindIcons[item]}</i><span>{kindLabels[item]}</span></button>)}</div>
+        <div className="kind-picker">{(Object.keys(kindLabels) as ReminderKind[]).map((item) => <button type="button" key={item} className={kind === item ? 'active' : ''} onClick={() => changeKind(item)}><i><img src={kindIconAssets[item]} alt="" /></i><span>{kindLabels[item]}</span></button>)}</div>
         <div className="two-fields"><label>哪一位毛孩？<select name="petId">{pets.map((pet) => <option key={pet.id} value={pet.id}>{pet.name}</option>)}</select></label><label>提醒名稱<input name="title" required placeholder={`例如：${examples[kind]}`} /></label></div>
         {kind === 'medication' && <label>藥品與劑量<input name="dose" placeholder="例如：心臟藥半顆，飯後服用" /></label>}
         {kind === 'medication' && <fieldset className="stock-editor"><legend>藥品庫存（選填）</legend><p>每次記錄「已完成」或「已補吃」後，自動扣除庫存。</p><div className="stock-fields"><label>目前庫存<input name="stockQuantity" type="number" min="0" step="0.5" placeholder="例如：30" /></label><label>每次用量<input name="doseQuantity" type="number" min="0.1" step="0.1" defaultValue="1" /></label><label>單位<select name="stockUnit" defaultValue="顆"><option>顆</option><option>包</option><option>錠</option><option>毫升</option><option>克</option></select></label><label>剩多少時提醒補藥<input name="lowStockThreshold" type="number" min="0" step="0.5" defaultValue="3" /></label></div></fieldset>}

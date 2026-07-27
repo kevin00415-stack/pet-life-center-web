@@ -10,6 +10,7 @@ import {
   Images,
   LockKey,
   Package,
+  PencilSimple,
   Plus,
 } from '@phosphor-icons/react'
 import './App.css'
@@ -29,8 +30,9 @@ import reminderFeatureIcon from './assets/feature-icons/reminder-3d.webp'
 import memoriesFeatureIcon from './assets/feature-icons/memories-3d.webp'
 import musicFeatureIcon from './assets/feature-icons/music-3d.webp'
 import type { CareReminder, GrowthRecord, MemoryEntry, Pet, ReminderKind, VoiceClip } from './domain'
+import { kindIconAssets } from './reminder-kind-assets'
+import { photoPanPercent } from './photo-position'
 import {
-  kindIcons,
   kindLabels,
   medicationStockSummary,
   nextOccurrence,
@@ -505,6 +507,12 @@ export default function App() {
           <i><Plus size={20} weight="bold" /></i>
           <span><b>新增毛孩</b><small>建立照護檔案</small></span>
         </button>
+        {pet && (
+          <button className="edit-pet-tab" onClick={() => setEditingPet(pet)}>
+            <i><PencilSimple size={20} weight="bold" /></i>
+            <span><b>編輯檔案</b><small>照片與基本資料</small></span>
+          </button>
+        )}
       </nav>
 
       {!pet ? (
@@ -521,7 +529,15 @@ export default function App() {
         <img
           src={customHomeCover || homeIsland}
           alt={customHomeCover ? `${pet.name}的首頁照片` : '狗狗與貓咪在溫暖居家小島上休息'}
-          style={customHomeCover ? { objectPosition: `${pet.coverPosition?.x ?? 50}% ${pet.coverPosition?.y ?? 50}%`, transform: `scale(${pet.coverPosition?.zoom ?? 1})` } : undefined}
+          style={customHomeCover ? (() => {
+            const position = { x: pet.coverPosition?.x ?? 50, y: pet.coverPosition?.y ?? 50 }
+            const zoom = pet.coverPosition?.zoom ?? 1
+            const pan = photoPanPercent(position, zoom)
+            return {
+              objectPosition: `${position.x}% ${position.y}%`,
+              transform: `translate3d(${pan.x}%, ${pan.y}%, 0) scale(${zoom})`,
+            }
+          })() : undefined}
         />
         <button className="change-cover-photo" onClick={() => setEditingPet(pet)}><Images size={18} />更換首頁照片</button>
       </section>
@@ -543,7 +559,6 @@ export default function App() {
       {pet && (
         <div className="pet-profile-actions">
           <span>{pet.birthDate ? `${pet.name}・生日 ${pet.birthDate}` : `${pet.name}・可加入生日與專屬照片`}</span>
-          <button onClick={() => setEditingPet(pet)}>編輯檔案</button>
         </div>
       )}
 
@@ -626,7 +641,7 @@ export default function App() {
         <div className="quick-grid">
           {(['medication', 'feeding', 'vet', 'vaccine', 'care'] as ReminderKind[]).map((kind) => (
             <button key={kind} onClick={() => setEditorKind(kind)}>
-              <i className={kind}>{kindIcons[kind]}</i>
+              <i className={kind}><img src={kindIconAssets[kind]} alt="" /></i>
               <span><b>{kindLabels[kind]}</b><small>建立{kindLabels[kind]}時間與提示</small></span>
               <em><Plus size={16} weight="bold" /></em>
             </button>
@@ -648,7 +663,7 @@ export default function App() {
           {shown.length ? shown.map((item) => (
             <article key={item.reminder.id}>
               <time><b>{item.next?.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })}</b><small>{item.next?.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}</small></time>
-              <i className={item.reminder.kind}>{kindIcons[item.reminder.kind]}</i>
+              <i className={item.reminder.kind}><img src={kindIconAssets[item.reminder.kind]} alt="" /></i>
               <div><small>{kindLabels[item.reminder.kind]}・{repeatLabels[item.reminder.repeat]}</small><b>{item.reminder.title}</b><p>{item.reminder.dose || item.reminder.details || '尚未填寫備註'}</p>{item.reminder.voiceClipId && <em>● 自訂語音</em>}</div>
               <button className="item-menu" onClick={() => void remove(item.reminder)} aria-label={`刪除${item.reminder.title}`}>×</button>
             </article>

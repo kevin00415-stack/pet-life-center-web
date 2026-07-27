@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { centerPhotoTransform, movePhotoPosition, nudgePhotoPosition } from './photo-position'
+import { centerPhotoTransform, movePhotoPosition, nudgePhotoPosition, photoPanPercent } from './photo-position'
 
 describe('photo positioning', () => {
   it('moves the photo with the pointer while preserving the saved percentage model', () => {
@@ -17,5 +17,10 @@ describe('photo positioning', () => {
 
   it('restores both the crop position and size when centering', () => {
     expect(centerPhotoTransform()).toEqual({ x: 50, y: 50, zoom: 1 })
+  })
+
+  it('turns crop coordinates into visible pan movement when the photo is zoomed', () => {
+    expect(photoPanPercent({ x: 30, y: 60 }, 2)).toEqual({ x: 20, y: -10 })
+    expect(photoPanPercent({ x: 10, y: 90 }, 1)).toEqual({ x: 0, y: 0 })
   })
 })

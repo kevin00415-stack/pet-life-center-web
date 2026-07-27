@@ -566,8 +566,18 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .draggable-photo img{
   pointer-events:none;
   -webkit-user-drag:none;
+  will-change:transform;
+}
+.draggable-photo{
+  touch-action:none!important;
+  overscroll-behavior:contain;
 }
 .pet-editor{overscroll-behavior:contain}
+.sheet-backdrop:has(.pet-editor){overscroll-behavior:none}
+.pet-editor.editor-sheet{
+  overscroll-behavior:none;
+  -webkit-overflow-scrolling:touch;
+}
 .draggable-photo:focus-visible{
   outline:3px solid rgba(83,126,151,.5);
   outline-offset:3px;
@@ -623,7 +633,87 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   font-weight:800;
 }
 
+/* Larger direct-manipulation avatar workspace */
+.pet-editor .avatar-workspace{
+  flex-direction:column;
+  gap:13px;
+  padding:8px 0 20px;
+}
+.pet-editor .avatar-preview{
+  width:min(250px,72vw);
+  height:min(250px,72vw);
+}
+.pet-editor .avatar-workspace>div:last-child{
+  width:min(300px,100%);
+  justify-items:stretch;
+}
+.pet-editor .avatar-workspace .photo-picker{width:100%}
+.pet-editor .avatar-workspace .remove-avatar{
+  min-height:40px;
+  font-size:12px;
+}
+
+/* Keep profile editing beside pet creation in the pet switcher */
+.cozy-pet-tabs .edit-pet-tab{
+  border-color:#c7d6df;
+  background:#edf4f7;
+}
+.cozy-pet-tabs .edit-pet-tab>i{
+  background:#dce9ef;
+  color:#5e8298;
+}
+.cozy-home .pet-profile-actions{justify-content:flex-start}
+
+/* Approved 3D care-category artwork */
+.kind-picker button{
+  min-height:112px;
+  padding:6px 4px 10px;
+}
+.kind-picker button i{
+  width:72px;
+  height:72px;
+  margin:0 auto 2px;
+}
+.kind-picker button i img,
+.quick-grid button>i img,
+.reminder-list article>i img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:contain;
+  filter:drop-shadow(0 6px 5px rgba(88,63,40,.16));
+}
+.kind-picker button span{font-size:12px}
+.quick-grid button>i{
+  width:68px;
+  height:68px;
+  flex:none;
+  background:transparent!important;
+}
+.reminder-list article>i{
+  width:44px;
+  height:44px;
+  overflow:visible;
+  background:transparent;
+}
+.photo-error{
+  margin:0 0 12px;
+  border-radius:12px;
+  background:#fff1ef;
+  color:#a3483f;
+  padding:10px 12px;
+  font-size:12px;
+  font-weight:700;
+}
+
 @media(max-width:430px){
+  .kind-picker{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kind-picker button{min-height:126px}
+  .kind-picker button i{width:88px;height:88px}
+  .pet-editor .avatar-preview{
+    width:min(230px,70vw);
+    height:min(230px,70vw);
+  }
   .cozy-home .game-actions{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
   .cozy-home .game-actions button{min-height:145px;border-radius:17px;padding:6px 2px 9px}
   .cozy-home .game-actions button>i,

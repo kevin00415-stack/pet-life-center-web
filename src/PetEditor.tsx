@@ -2,15 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { Image, Trash } from '@phosphor-icons/react'
 import type { Pet } from './domain'
-import { centerPhotoTransform, movePhotoPosition, nudgePhotoPosition } from './photo-position'
+import { prepareLocalPhoto } from './local-photo'
+import { centerPhotoTransform, movePhotoPosition, nudgePhotoPosition, photoPanPercent } from './photo-position'
 
 type Props = { pet?: Pet; onClose: () => void; onSave: (pet: Pet) => Promise<void>; onDelete?: (pet: Pet) => Promise<void> }
 type CropTarget = 'avatar' | 'cover'
 type DragState = {
   target: CropTarget
-  input: 'pointer' | 'touch'
-  pointerId?: number
-  touchId?: number
+  pointerId: number
   clientX: number
   clientY: number
   startX: number
@@ -42,109 +41,65 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
   const [coverY, setCoverY] = useState(pet?.coverPosition?.y ?? 50)
   const [coverZoom, setCoverZoom] = useState(pet?.coverPosition?.zoom ?? 1)
   const [saving, setSaving] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+  const [preparing, setPreparing] = useState(false)
   const drag = useRef<DragState | null>(null)
   const [dragging, setDragging] = useState<CropTarget | null>(null)
   const avatarPreview = useRef<HTMLDivElement | null>(null)
   const coverPreview = useRef<HTMLDivElement | null>(null)
-  const cropState = useRef({ x, y, coverX, coverY })
-  cropState.current = { x, y, coverX, coverY }
+  const avatarPan = photoPanPercent({ x, y }, zoom)
+  const coverPan = photoPanPercent({ x: coverX, y: coverY }, coverZoom)
 
   useEffect(() => {
-    function bindTouchCrop(element: HTMLDivElement | null, target: CropTarget) {
-      if (!element) return () => undefined
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previousOverflow }
+  }, [])
 
-      function start(event: TouchEvent) {
-        if (event.touches.length !== 1) return
-        const touch = event.touches.item(0)
-        if (!touch) return
-        const bounds = element!.getBoundingClientRect()
-        const current = cropState.current
-        if (event.cancelable) event.preventDefault()
-        event.stopPropagation()
-        drag.current = {
-          target,
-          input: 'touch',
-          touchId: touch.identifier,
-          clientX: touch.clientX,
-          clientY: touch.clientY,
-          startX: target === 'avatar' ? current.x : current.coverX,
-          startY: target === 'avatar' ? current.y : current.coverY,
-          width: bounds.width,
-          height: bounds.height,
-        }
-        setDragging(target)
-      }
-
-      function move(event: TouchEvent) {
-        const current = drag.current
-        if (!current || current.input !== 'touch' || current.target !== target) return
-        const touch = Array.from(event.touches).find((item) => item.identifier === current.touchId)
-        if (!touch) return
-        if (event.cancelable) event.preventDefault()
-        event.stopPropagation()
-        const next = movePhotoPosition(
-          { x: current.startX, y: current.startY },
-          touch.clientX - current.clientX,
-          touch.clientY - current.clientY,
-          current.width,
-          current.height,
-        )
-        if (target === 'avatar') {
-          setX(next.x)
-          setY(next.y)
-        } else {
-          setCoverX(next.x)
-          setCoverY(next.y)
-        }
-      }
-
-      function finish(event: TouchEvent) {
-        const current = drag.current
-        if (!current || current.input !== 'touch' || current.target !== target) return
-        if (event.cancelable) event.preventDefault()
-        event.stopPropagation()
-        drag.current = null
-        setDragging(null)
-      }
-
-      element.addEventListener('touchstart', start, { passive: false })
-      element.addEventListener('touchmove', move, { passive: false })
-      element.addEventListener('touchend', finish, { passive: false })
-      element.addEventListener('touchcancel', finish, { passive: false })
-      return () => {
-        element.removeEventListener('touchstart', start)
-        element.removeEventListener('touchmove', move)
-        element.removeEventListener('touchend', finish)
-        element.removeEventListener('touchcancel', finish)
-      }
+  useEffect(() => {
+    const preventCropScroll = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return
+      if (event.cancelable) event.preventDefault()
+      event.stopPropagation()
     }
-
-    const unbindAvatar = url ? bindTouchCrop(avatarPreview.current, 'avatar') : () => undefined
-    const unbindCover = coverUrl ? bindTouchCrop(coverPreview.current, 'cover') : () => undefined
-    return () => {
-      unbindAvatar()
-      unbindCover()
-    }
+    const elements = [avatarPreview.current, coverPreview.current].filter((element): element is HTMLDivElement => Boolean(element))
+    elements.forEach((element) => element.addEventListener('touchmove', preventCropScroll, { passive: false }))
+    return () => elements.forEach((element) => element.removeEventListener('touchmove', preventCropScroll))
   }, [url, coverUrl])
 
-  function chooseAvatar(file?: File) {
-    setSource(file)
+  async function chooseAvatar(file?: File) {
     if (!file) return
-    setX(50)
-    setY(50)
-    setZoom(1)
+    setPreparing(true)
+    setPhotoError('')
+    try {
+      setSource(await prepareLocalPhoto(file))
+      setX(50)
+      setY(50)
+      setZoom(1)
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : '照片處理失敗，請改選較小的照片。')
+    } finally {
+      setPreparing(false)
+    }
   }
 
-  function chooseCover(file?: File) {
-    setCover(file)
+  async function chooseCover(file?: File) {
     if (!file) return
-    setCoverX(50)
-    setCoverY(50)
-    setCoverZoom(1)
+    setPreparing(true)
+    setPhotoError('')
+    try {
+      setCover(await prepareLocalPhoto(file))
+      setCoverX(50)
+      setCoverY(50)
+      setCoverZoom(1)
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : '照片處理失敗，請改選較小的照片。')
+    } finally {
+      setPreparing(false)
+    }
   }
 
   function startDrag(target: CropTarget, event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.pointerType === 'touch') return
     if (event.pointerType === 'mouse' && event.button !== 0) return
     const bounds = event.currentTarget.getBoundingClientRect()
     const currentX = target === 'avatar' ? x : coverX
@@ -154,7 +109,6 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
     event.currentTarget.setPointerCapture(event.pointerId)
     drag.current = {
       target,
-      input: 'pointer',
       pointerId: event.pointerId,
       clientX: event.clientX,
       clientY: event.clientY,
@@ -168,7 +122,7 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
 
   function continueDrag(target: CropTarget, event: ReactPointerEvent<HTMLDivElement>) {
     const current = drag.current
-    if (!current || current.input !== 'pointer' || current.target !== target || current.pointerId !== event.pointerId) return
+    if (!current || current.target !== target || current.pointerId !== event.pointerId) return
     const next = movePhotoPosition(
       { x: current.startX, y: current.startY },
       event.clientX - current.clientX,
@@ -189,12 +143,10 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
 
   function finishDrag(target: CropTarget, event: ReactPointerEvent<HTMLDivElement>) {
     const current = drag.current
-    if (!current || current.input !== 'pointer' || current.target !== target || current.pointerId !== event.pointerId) return
+    if (!current || current.target !== target || current.pointerId !== event.pointerId) return
     event.preventDefault()
     event.stopPropagation()
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
-    }
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
     drag.current = null
     setDragging(null)
   }
@@ -261,24 +213,34 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
         onKeyDown={(event) => nudge('avatar', event)}
       >
         {url ? <>
-          <img draggable={false} src={url} alt="頭像裁切預覽" style={{ objectPosition: `${x}% ${y}%`, transform: `scale(${zoom})`, transformOrigin: '50% 50%' }} />
+          <img
+            draggable={false}
+            src={url}
+            alt="頭像裁切預覽"
+            style={{
+              objectPosition: `${x}% ${y}%`,
+              transform: `translate3d(${avatarPan.x}%, ${avatarPan.y}%, 0) scale(${zoom})`,
+              transformOrigin: '50% 50%',
+            }}
+          />
           <span className="drag-photo-hint" aria-hidden="true">按住拖曳</span>
         </> : <span>{pet?.avatar || '🐾'}</span>}
       </div>
       <div>
-        <label className="photo-picker"><Image />選擇頭像照片<input type="file" accept="image/*" onChange={(event) => chooseAvatar(event.target.files?.[0])} /></label>
+        <label className="photo-picker"><Image />{preparing ? '照片處理中…' : '選擇頭像照片'}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={preparing} onChange={(event) => void chooseAvatar(event.target.files?.[0])} /></label>
         {source && <button type="button" className="remove-avatar" onClick={() => setSource(undefined)}>改用圖示</button>}
       </div>
     </div>
+    {photoError && <p className="field-error photo-error">{photoError}</p>}
     {source && <fieldset className="crop-controls">
       <legend>調整頭像</legend>
-      <p>按住照片上下左右拖曳，讓毛孩置中；大小使用下方滑桿調整。</p>
+      <p>照片已在手機本機縮小處理。按住照片上下左右拖曳，大小使用下方滑桿調整。</p>
       <div className="crop-toolbar"><button type="button" onClick={() => recenter('avatar')}>恢復置中與大小</button></div>
       <label>照片大小 <input type="range" min="1" max="2.5" step="0.05" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} /></label>
     </fieldset>}
     <fieldset className="cover-editor">
       <legend>首頁封面照片</legend>
-      <p>照片會裁切填滿首頁相框。選擇後按住照片拖曳取景，再用滑桿調整大小。</p>
+      <p>選圖後會在手機本機自動縮小，再按住照片拖曳取景。</p>
       <div
         ref={coverPreview}
         className={`cover-preview ${coverUrl ? 'draggable-photo' : ''} ${dragging === 'cover' ? 'dragging' : ''}`}
@@ -291,12 +253,21 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
         onKeyDown={(event) => nudge('cover', event)}
       >
         {coverUrl ? <>
-          <img draggable={false} src={coverUrl} alt="首頁封面預覽" style={{ objectPosition: `${coverX}% ${coverY}%`, transform: `scale(${coverZoom})`, transformOrigin: '50% 50%' }} />
+          <img
+            draggable={false}
+            src={coverUrl}
+            alt="首頁封面預覽"
+            style={{
+              objectPosition: `${coverX}% ${coverY}%`,
+              transform: `translate3d(${coverPan.x}%, ${coverPan.y}%, 0) scale(${coverZoom})`,
+              transformOrigin: '50% 50%',
+            }}
+          />
           <span className="drag-photo-hint" aria-hidden="true">按住拖曳</span>
         </> : <span><Image size={34} />尚未選擇首頁照片</span>}
       </div>
       <div className="cover-actions">
-        <label className="photo-picker"><Image />選擇首頁照片<input type="file" accept="image/*" onChange={(event) => chooseCover(event.target.files?.[0])} /></label>
+        <label className="photo-picker"><Image />{preparing ? '照片處理中…' : '選擇首頁照片'}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={preparing} onChange={(event) => void chooseCover(event.target.files?.[0])} /></label>
         {cover && <button type="button" className="remove-avatar" onClick={() => setCover(undefined)}>移除封面</button>}
       </div>
       {cover && <div className="cover-controls">
