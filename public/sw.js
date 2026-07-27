@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'maohai-life-center-v20260727-3'
+const CACHE_VERSION = 'maohai-life-center-v20260727-4'
 const APP_SHELL = ['/', '/manifest.webmanifest', '/app-icon-192.png', '/app-icon-512.png', '/favicon.svg']
 const OFFLINE_MUSIC = [
   '/music/PLC-001-Crystal-Forest-Drift.mp3',

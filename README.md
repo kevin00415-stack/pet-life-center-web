@@ -35,6 +35,11 @@ VITE_MEDIA_BASE_URL=https://your-media-host.example.com/music
 - `PLC-002-Forest-Drift.mp3`
 - `PLC-003-Ocean-Whisper.mp3`
 
+## 資料匯出
+
+- 「完整備份檔」是 App 專用 JSON，包含照片、錄音與本機資料，只能使用 App 的「恢復資料」匯入，不是一般閱讀文件。
+- 「獸醫摘要 PDF」會在裝置本機建立可列印摘要，只包含目前毛孩的基本資料、服藥、看診、疫苗、體重與健康時間軸，不包含照片、影片或錄音。使用者可在手機列印畫面儲存為 PDF 或分享。
+
 ## PWA
 
 `public/manifest.webmanifest`、`public/sw.js`、192/512 圖示皆會隨建置輸出。Service Worker 快取版本請在每次需要強制更新手機內容時調整 `CACHE_VERSION`。

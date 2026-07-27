@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { FileAudio, Microphone, Play } from '@phosphor-icons/react'
+import { FileAudio, Microphone, Pause, Play } from '@phosphor-icons/react'
 import type { CareReminder, Pet, ReminderKind, RepeatRule, VoiceClip } from './domain'
 import { kindLabels, localDateKey, repeatLabels } from './domain'
 import { kindIconAssets } from './reminder-kind-assets'
@@ -21,8 +21,16 @@ export default function ReminderEditor({ pets, initialKind, voices, onClose, onS
   const recorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const startedAtRef = useRef(0)
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null)
+  const previewUrlRef = useRef('')
+  const previewTimerRef = useRef<number | undefined>(undefined)
+  const systemPreviewRef = useRef<AudioContext | null>(null)
+  const [previewing, setPreviewing] = useState<'system' | string | null>(null)
 
-  useEffect(() => () => streamRef.current?.getTracks().forEach((track) => track.stop()), [])
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+    stopPreview()
+  }, [])
 
   function changeKind(next: ReminderKind) {
     setKind(next)
@@ -58,19 +66,68 @@ export default function ReminderEditor({ pets, initialKind, voices, onClose, onS
   }
 
   function stopRecording() { if (recorderRef.current?.state === 'recording') recorderRef.current.stop() }
+  function stopPreview() {
+    if (previewTimerRef.current) window.clearTimeout(previewTimerRef.current)
+    previewTimerRef.current = undefined
+    previewAudioRef.current?.pause()
+    previewAudioRef.current = null
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+    previewUrlRef.current = ''
+    if (systemPreviewRef.current) void systemPreviewRef.current.close()
+    systemPreviewRef.current = null
+    setPreviewing(null)
+  }
+  function playSystemPreview() {
+    stopPreview()
+    setAudioError('')
+    try {
+      const context = new AudioContext()
+      const oscillator = context.createOscillator()
+      const gain = context.createGain()
+      const now = context.currentTime
+      oscillator.type = 'sine'
+      oscillator.frequency.setValueAtTime(659.25, now)
+      oscillator.frequency.setValueAtTime(783.99, now + .22)
+      oscillator.frequency.setValueAtTime(987.77, now + .44)
+      gain.gain.setValueAtTime(.0001, now)
+      gain.gain.exponentialRampToValueAtTime(.16, now + .03)
+      gain.gain.exponentialRampToValueAtTime(.0001, now + .85)
+      oscillator.connect(gain)
+      gain.connect(context.destination)
+      oscillator.onended = () => {
+        if (systemPreviewRef.current === context) {
+          systemPreviewRef.current = null
+          setPreviewing(null)
+        }
+        void context.close()
+      }
+      systemPreviewRef.current = context
+      setPreviewing('system')
+      oscillator.start(now)
+      oscillator.stop(now + .9)
+    } catch {
+      setAudioError('這台裝置目前無法試聽提示音。')
+    }
+  }
   function playVoice(clip: VoiceClip) {
+    stopPreview()
+    setAudioError('')
     const url = URL.createObjectURL(clip.blob)
     const audio = new Audio(url)
-    const cleanup = () => URL.revokeObjectURL(url)
-    const stopAtThirtySeconds = window.setTimeout(() => { audio.pause(); audio.currentTime = 0; cleanup() }, 30_000)
-    audio.onended = () => { window.clearTimeout(stopAtThirtySeconds); cleanup() }
-    void audio.play()
+    previewUrlRef.current = url
+    previewAudioRef.current = audio
+    setPreviewing(clip.id)
+    previewTimerRef.current = window.setTimeout(stopPreview, 30_000)
+    audio.onended = stopPreview
+    audio.onerror = () => { stopPreview(); setAudioError('這個音檔無法播放，請改用 MP3、M4A 或 WAV。') }
+    void audio.play().catch(() => { stopPreview(); setAudioError('瀏覽器阻止播放，請再按一次試聽。') })
   }
   function importAudio(file?: File) {
     if (!file) return
+    stopPreview()
     setAudioError('')
     if (!file.type.startsWith('audio/')) return setAudioError('請選擇聲音或音樂檔案。')
-    if (file.size > 20 * 1024 * 1024) return setAudioError('音檔超過20 MB，請選擇較短的聲音或音樂。')
+    if (file.size > 20 * 1024 * 1024) return setAudioError('音檔超過20 MB，請先裁切成30秒內或選擇較小的音樂。')
     const clip: VoiceClip = { id: crypto.randomUUID(), name: file.name.replace(/\.[^.]+$/, '') || '自訂提醒音', blob: file, mimeType: file.type, durationMs: 30_000, createdAt: Date.now(), source: 'file' }
     setRecorded(clip)
     setSelectedVoice(clip.id)
@@ -99,6 +156,7 @@ export default function ReminderEditor({ pets, initialKind, voices, onClose, onS
     await onSave(reminder, recorded || undefined)
     setSaving(false)
   }
+  const previewClip = recorded || voices.find((voice) => voice.id === selectedVoice)
 
   return <div className="sheet-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose() }}>
     <section className="editor-sheet" role="dialog" aria-modal="true" aria-labelledby="editor-title">
@@ -113,8 +171,10 @@ export default function ReminderEditor({ pets, initialKind, voices, onClose, onS
         <div className="two-fields"><label>{repeat === 'once' ? '日期' : '開始日期'}<input name="startDate" type="date" min={localDateKey()} defaultValue={localDateKey()} required /></label>{repeat !== 'once' && <label>結束日期（選填）<input name="endDate" type="date" min={localDateKey()} /></label>}</div>
         <fieldset><legend>提醒週期</legend><div className={`segmented repeat-count-${repeatOptions.length}`}>{repeatOptions.map((option) => <button type="button" key={option} className={repeat === option ? 'active' : ''} onClick={() => setRepeat(option)}>{repeatLabels[option]}</button>)}</div></fieldset>
         <fieldset><legend>{repeat === 'daily' ? '每天提醒時間' : '提醒時間'}</legend><div className="time-list">{times.map((time, index) => <div key={index}><input type="time" value={time} onChange={(event) => setTimes((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} required />{index > 0 && <button type="button" onClick={() => setTimes((current) => current.filter((_, itemIndex) => itemIndex !== index))}>移除</button>}</div>)}{repeat === 'daily' && times.length < 5 && <button className="add-time" type="button" onClick={() => setTimes((current) => [...current, '12:00'])}>＋ 加一個{kind === 'feeding' ? '吃飯' : kind === 'medication' ? '服藥' : '提醒'}時間</button>}</div></fieldset>
-        <fieldset className="sound-field"><legend>提醒聲音</legend><div className="sound-options"><button type="button" className={sound === 'system' ? 'active' : ''} onClick={() => setSound('system')}><span><b>系統提示音</b><small>使用手機預設聲音</small></span></button><button type="button" className={sound === 'voice' ? 'active' : ''} onClick={() => setSound('voice')}><span><b>我的聲音或音樂</b><small>錄音，或從手機選擇音檔</small></span></button></div>
-          {sound === 'voice' && <div className="voice-recorder"><div className="voice-copy"><b>專屬提醒聲</b><small>最多播放30秒，只保存在這台手機</small></div><div className="voice-actions">{recording ? <button type="button" className="recording" onClick={stopRecording}><Microphone />停止錄音</button> : <button type="button" onClick={startRecording}><Microphone />開始錄音</button>}<label className="audio-file-picker"><FileAudio />匯入聲音或音樂<input type="file" accept="audio/*" onChange={(event) => importAudio(event.target.files?.[0])} /></label></div>{recorded && <button type="button" className="audio-preview" onClick={() => playVoice(recorded)}><Play weight="fill" />試聽「{recorded.name}」（最多30秒）</button>}{!recorded && voices.length > 0 && <select value={selectedVoice} onChange={(event) => setSelectedVoice(event.target.value)}>{voices.map((voice) => <option key={voice.id} value={voice.id}>{voice.name}</option>)}</select>}{recordingError && <p className="field-error">{recordingError}</p>}{audioError && <p className="field-error">{audioError}</p>}<p className="system-sound-note">App開啟時可播放自訂音檔；鎖屏或App完全關閉時，通知聲仍受 iPhone／Android 系統限制。</p></div>}
+        <fieldset className="sound-field"><legend>提醒聲音</legend><div className="sound-options"><button type="button" className={sound === 'system' ? 'active' : ''} onClick={() => { stopPreview(); setSound('system') }}><span><b>系統提示音</b><small>使用手機預設聲音</small></span></button><button type="button" className={sound === 'voice' ? 'active' : ''} onClick={() => { stopPreview(); setSound('voice') }}><span><b>我的聲音或音樂</b><small>錄音，或從手機選擇音檔</small></span></button></div>
+          {sound === 'system' && <div className="system-preview"><button type="button" className={previewing === 'system' ? 'is-playing' : ''} onClick={previewing === 'system' ? stopPreview : playSystemPreview}>{previewing === 'system' ? <Pause weight="fill" /> : <Play weight="fill" />}{previewing === 'system' ? '停止試聽' : '試聽提示音範例'}</button><p>鎖屏或 App 關閉時，實際提示聲由 iPhone／Android 系統與音量設定決定。</p></div>}
+          {sound === 'voice' && <div className="voice-recorder"><div className="voice-copy"><b>專屬提醒聲</b><small>最多播放30秒，只保存在這台手機</small></div><div className="voice-actions">{recording ? <button type="button" className="recording" onClick={stopRecording}><Microphone />停止錄音</button> : <button type="button" onClick={startRecording}><Microphone />開始錄音</button>}<label className="audio-file-picker"><FileAudio />匯入聲音或音樂<input type="file" accept="audio/*" onChange={(event) => importAudio(event.target.files?.[0])} /></label></div>{!recorded && voices.length > 0 && <select value={selectedVoice} onChange={(event) => { stopPreview(); setSelectedVoice(event.target.value) }}>{voices.map((voice) => <option key={voice.id} value={voice.id}>{voice.name}</option>)}</select>}{previewClip && <button type="button" className={`audio-preview ${previewing === previewClip.id ? 'is-playing' : ''}`} onClick={previewing === previewClip.id ? stopPreview : () => playVoice(previewClip)}>{previewing === previewClip.id ? <Pause weight="fill" /> : <Play weight="fill" />}{previewing === previewClip.id ? '停止試聽' : `試聽「${previewClip.name}」（最多30秒）`}</button>}{!previewClip && <p className="preview-empty">請先錄音或匯入音檔，儲存前可以在這裡試聽。</p>}{recordingError && <p className="field-error">{recordingError}</p>}{audioError && <p className="field-error">{audioError}</p>}<p className="system-sound-note">App開啟時可播放自訂音檔；鎖屏或App完全關閉時，通知聲仍受 iPhone／Android 系統限制。</p></div>}
+          {sound === 'system' && audioError && <p className="field-error">{audioError}</p>}
         </fieldset>
         <label>備註<textarea name="details" placeholder={kind === 'feeding' ? '例如：需要加水、保健粉或觀察食慾……' : '例如：飯後服用、攜帶檢查報告、想詢問醫師的問題……'} /></label>
         <div className="privacy-note">🔒 所有提醒、用藥與錄音都只保存在這台裝置</div>

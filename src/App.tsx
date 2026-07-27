@@ -66,6 +66,7 @@ import {
   scheduleSnooze,
 } from './notifications'
 import { CARE_ALERT_EVENT, type CareAlertDetail } from './audio-coordination'
+import { openVetReport } from './vet-report'
 
 type View = 'care' | 'health' | 'memories' | 'calendar' | 'settings' | 'relax'
 
@@ -376,13 +377,21 @@ export default function App() {
 
   async function exportData() {
     const content = await createBackup()
-    const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }))
+    const url = URL.createObjectURL(new Blob([content], { type: 'application/json;charset=utf-8' }))
     const link = document.createElement('a')
     link.href = url
     link.download = `毛孩生活中心-單機備份-${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(link)
     link.click()
-    URL.revokeObjectURL(url)
-    notify('完整備份已下載')
+    link.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1500)
+    notify('完整備份檔已下載；此檔案請用 App 的「恢復資料」開啟')
+  }
+
+  function exportVetPdf() {
+    if (!pet) return notify('請先建立或選擇一隻毛孩')
+    const opened = openVetReport({ pet, reminders, growthRecords })
+    notify(opened ? '請在列印畫面選擇「儲存為 PDF」或分享' : '瀏覽器阻止開啟摘要，請允許彈出視窗後再試')
   }
 
   async function importData(file?: File) {
@@ -418,6 +427,7 @@ export default function App() {
           onBack={() => setView('care')}
           onSaveGrowth={addGrowth}
           onDeleteGrowth={removeGrowth}
+          onExportVetReport={exportVetPdf}
         />
         {nav}
       </main>
@@ -461,6 +471,7 @@ export default function App() {
           voices={voices}
           onBack={() => setView('care')}
           onExport={exportData}
+          onExportVetReport={exportVetPdf}
           onImport={importData}
           notify={notify}
         />
@@ -694,7 +705,7 @@ export default function App() {
 
       <section className="data-safety">
         <div><i><LockKey size={24} weight="duotone" /></i><span><b>單機資料保護</b><small>提醒、看診、回憶照片與錄音都包含在備份中</small></span></div>
-        <div className="backup-actions"><button onClick={() => void exportData()}>下載備份</button><button onClick={() => restoreInput.current?.click()}>恢復資料</button><input ref={restoreInput} type="file" accept="application/json" onChange={(event) => void importData(event.target.files?.[0])} /></div>
+        <div className="backup-actions"><button className="vet-report-action" onClick={exportVetPdf}>獸醫摘要 PDF</button><button onClick={() => void exportData()}>完整備份檔</button><button onClick={() => restoreInput.current?.click()}>恢復資料</button><input ref={restoreInput} type="file" accept="application/json,.json" onChange={(event) => void importData(event.target.files?.[0])} /></div>
       </section>
       </>)}
 
