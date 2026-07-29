@@ -48,16 +48,24 @@ export async function loadPets() {
     getAll<MemoryEntry>('memories'),
     getAll<GrowthRecord>('growth'),
   ])
-  const hasRelatedData = (petId: string) =>
-    reminders.some((item) => item.petId === petId) ||
-    memories.some((item) => item.petId === petId) ||
-    growth.some((item) => item.petId === petId)
-  const untouchedLegacySeed = (pet: Pet) =>
-    ((pet.id === 'jiji' && pet.name === '吉吉') || (pet.id === 'coco' && pet.name === '可可')) &&
-    !pet.birthDate && !pet.avatarPhoto && !pet.coverPhoto && !hasRelatedData(pet.id)
-  const legacySeeds = pets.filter(untouchedLegacySeed)
-  if (legacySeeds.length) await Promise.all(legacySeeds.map((pet) => remove('pets', pet.id)))
-  return pets.filter((pet) => !untouchedLegacySeed(pet))
+  const hasRelatedData = (petId: string) => {
+    const hasReminder = reminders.some((item) => item.petId === petId)
+    const hasMemory = memories.some((item) => item.petId === petId)
+    const hasGrowth = growth.some((item) => item.petId === petId)
+    return hasReminder || hasMemory || hasGrowth
+  }
+
+  const isUntouchedLegacySeed = (pet: Pet) => {
+    const isLegacyPet = (pet.id === 'jiji' && pet.name === '吉吉') || (pet.id === 'coco' && pet.name === '可可')
+    const hasNoCustomInfo = !pet.birthDate && !pet.avatarPhoto && !pet.coverPhoto
+    return isLegacyPet && hasNoCustomInfo && !hasRelatedData(pet.id)
+  }
+
+  const legacySeeds = pets.filter(isUntouchedLegacySeed)
+  if (legacySeeds.length) {
+    await Promise.all(legacySeeds.map((pet) => remove('pets', pet.id)))
+  }
+  return pets.filter((pet) => !isUntouchedLegacySeed(pet))
 }
 export const savePet = (pet: Pet) => put('pets', pet)
 export async function deletePetData(petId: string) {
