@@ -48,6 +48,7 @@ qa-*.png
 prototype-*.png
 design-comparison.png
 edge-qa-profile/
+/assets/design-proposals/feature-icons-v2/*-candidate.png
 
 # Replaced source images (the app uses the WebP versions)
 /src/assets/home-island-v1.png
