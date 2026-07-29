@@ -8,7 +8,9 @@ void initializeAudioCoordination()
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    void navigator.serviceWorker.register('/sw.js').then((registration) => registration.update())
+    const baseUrl = import.meta.env.BASE_URL || '/'
+    const swPath = `${baseUrl.endsWith('/') ? baseUrl : baseUrl + '/'}sw.js`
+    void navigator.serviceWorker.register(swPath).then((registration) => registration.update())
   })
 }
 

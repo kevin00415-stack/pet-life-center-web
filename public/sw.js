@@ -1,5 +1,5 @@
 const CACHE_VERSION = 'maohai-life-center-v20260724-1'
-const APP_SHELL = ['/', '/manifest.webmanifest', '/app-icon-192.png', '/app-icon-512.png', '/favicon.svg']
+const APP_SHELL = ['./', 'manifest.webmanifest', 'app-icon-192.png', 'app-icon-512.png', 'favicon.svg']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL)))
