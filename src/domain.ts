@@ -66,7 +66,7 @@ export type CareReminder = {
   createdAt: number
 }
 
-export const kindLabels: Record<ReminderKind, string> = { medication: '吃藥', feeding: '吃飯', vet: '看醫生', vaccine: '疫苗', care: '日常照護' }
+export const kindLabels: Record<ReminderKind, string> = { medication: '吃藥', feeding: '吃飯', vet: '看醫生', vaccine: '疫苗', care: '日常護照' }
 export const kindIcons: Record<ReminderKind, string> = { medication: '＋', feeding: '♨', vet: '✚', vaccine: '◇', care: '♡' }
 export const repeatLabels: Record<RepeatRule, string> = { once: '單次', daily: '每天', weekly: '每週', monthly: '每月', quarterly: '每季', yearly: '每年' }
 
