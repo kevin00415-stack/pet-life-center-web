@@ -208,33 +208,74 @@ export default function App() {
   useEffect(() => {
     let alertAudio: HTMLAudioElement | undefined
     let alertUrl = ''
+    let synthInterval: number | undefined
+    let audioCtx: AudioContext | undefined
+
+    const stopAllAlerts = () => {
+      if (alertAudio) {
+        alertAudio.pause()
+        alertAudio = undefined
+      }
+      if (alertUrl) {
+        URL.revokeObjectURL(alertUrl)
+        alertUrl = ''
+      }
+      if (synthInterval) {
+        window.clearInterval(synthInterval)
+        synthInterval = undefined
+      }
+      if (audioCtx) {
+        void audioCtx.close().catch(() => {})
+        audioCtx = undefined
+      }
+    }
+
     const handleCareAlert = (event: Event) => {
       const detail = (event as CustomEvent<CareAlertDetail>).detail
       if (detail.phase === 'completed') {
-        alertAudio?.pause()
-        if (alertUrl) URL.revokeObjectURL(alertUrl)
-        alertAudio = undefined
-        alertUrl = ''
+        stopAllAlerts()
         return
       }
+
+      stopAllAlerts()
+
       const clip = voices.find((item) => item.id === detail.voiceClipId)
-      if (!clip) return
-      alertAudio?.pause()
-      if (alertUrl) URL.revokeObjectURL(alertUrl)
-      alertUrl = URL.createObjectURL(clip.blob)
-      alertAudio = new Audio(alertUrl)
-      alertAudio.onended = () => {
-        if (alertUrl) URL.revokeObjectURL(alertUrl)
-        alertAudio = undefined
-        alertUrl = ''
+      if (clip) {
+        alertUrl = URL.createObjectURL(clip.blob)
+        alertAudio = new Audio(alertUrl)
+        alertAudio.loop = true
+        void alertAudio.play().catch((e) => console.error('Audio play blocked:', e))
+      } else {
+        try {
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+          audioCtx = ctx
+          const playBeep = () => {
+            if (ctx.state === 'closed') return
+            const osc = ctx.createOscillator()
+            const gain = ctx.createGain()
+            const now = ctx.currentTime
+            osc.type = 'sine'
+            osc.frequency.setValueAtTime(659.25, now) // Mi
+            osc.frequency.setValueAtTime(880.00, now + 0.15) // La
+            gain.gain.setValueAtTime(0.0001, now)
+            gain.gain.exponentialRampToValueAtTime(0.12, now + 0.02)
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5)
+            osc.connect(gain)
+            gain.connect(ctx.destination)
+            osc.start(now)
+            osc.stop(now + 0.6)
+          }
+          playBeep()
+          synthInterval = window.setInterval(playBeep, 1500)
+        } catch (e) {
+          console.error('Synth alert blocked:', e)
+        }
       }
-      void alertAudio.play()
     }
     window.addEventListener(CARE_ALERT_EVENT, handleCareAlert)
     return () => {
       window.removeEventListener(CARE_ALERT_EVENT, handleCareAlert)
-      alertAudio?.pause()
-      if (alertUrl) URL.revokeObjectURL(alertUrl)
+      stopAllAlerts()
     }
   }, [voices])
 
@@ -267,6 +308,7 @@ export default function App() {
     occurrence: Date,
     status: 'completed' | 'late' | 'skipped',
   ) {
+    window.dispatchEvent(new CustomEvent(CARE_ALERT_EVENT, { detail: { phase: 'completed', notificationId: 0 } }))
     const key = occurrenceKey(reminder.id, occurrence)
     const previousStock = medicationStockSummary(reminder)
     const updated = {
@@ -363,6 +405,7 @@ export default function App() {
   }
 
   async function snooze(reminder: CareReminder) {
+    window.dispatchEvent(new CustomEvent(CARE_ALERT_EVENT, { detail: { phase: 'completed', notificationId: 0 } }))
     const targetPet = pets.find((item) => item.id === reminder.petId)
     if (!targetPet) return
     const result = await scheduleSnooze(reminder, targetPet, 10)
@@ -396,6 +439,8 @@ export default function App() {
 
   async function importData(file?: File) {
     if (!file) return
+    const confirmed = window.confirm('確定要恢復資料嗎？這將會清除您目前裝置上的所有毛孩檔案、提醒、日記與成長紀錄，並覆蓋為備份檔中的資料。此動作無法復原。')
+    if (!confirmed) return
     try {
       await restoreBackup(await file.text())
       await refresh()

@@ -43,7 +43,10 @@ self.addEventListener('fetch', (event) => {
       const network = fetch(request).then((response) => {
         if (response.ok) {
           const copy = response.clone()
-          void caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy))
+          void caches.open(CACHE_VERSION).then((cache) => {
+            cache.put(request, copy)
+            cleanupOldHashedAssets(cache, request.url)
+          })
         }
         return response
       })
@@ -51,3 +54,39 @@ self.addEventListener('fetch', (event) => {
     }),
   )
 })
+
+function cleanupOldHashedAssets(cache, newUrlString) {
+  try {
+    const newUrl = new URL(newUrlString)
+    const path = newUrl.pathname
+    if (!path.includes('/assets/')) return
+
+    let prefix = ''
+    let extension = ''
+    if (path.endsWith('.js')) {
+      extension = '.js'
+      const match = path.match(/(.*\/assets\/[a-zA-Z0-9_-]+)-[a-zA-Z0-9_-]+\.js$/)
+      if (match) prefix = match[1]
+    } else if (path.endsWith('.css')) {
+      extension = '.css'
+      const match = path.match(/(.*\/assets\/[a-zA-Z0-9_-]+)-[a-zA-Z0-9_-]+\.css$/)
+      if (match) prefix = match[1]
+    }
+
+    if (!prefix) return
+
+    cache.keys().then((requests) => {
+      requests.forEach((req) => {
+        const cachedUrl = new URL(req.url)
+        const cachedPath = cachedUrl.pathname
+        if (cachedPath === path) return // Keep the new one
+        if (cachedPath.startsWith(prefix) && cachedPath.endsWith(extension)) {
+          console.log('[SW] Cleaning up old hashed asset:', cachedPath)
+          cache.delete(req)
+        }
+      })
+    })
+  } catch (e) {
+    console.error('[SW] Error during asset cleanup:', e)
+  }
+}
