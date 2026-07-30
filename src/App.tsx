@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   BellRinging,
   CaretRight,
@@ -6,13 +6,11 @@ import {
   Clock,
   GearSix,
   Heartbeat,
-  House,
   Images,
   LockKey,
   Package,
   PencilSimple,
   Plus,
-  Users,
 } from '@phosphor-icons/react'
 import './App.css'
 import ReminderEditor from './ReminderEditor'
@@ -24,7 +22,7 @@ import PetEditor from './PetEditor'
 import CareCalendar from './CareCalendar'
 import SettingsPage from './SettingsPage'
 import RelaxPage from './RelaxPage'
-import CommunityHome from './CommunityHome'
+import CommunityHome from './community/CommunityHome'
 import brandMark from './assets/brand-mark.webp'
 import homeIsland from './assets/home-island-v1.webp'
 import healthFeatureIcon from './assets/feature-icons/health-3d.webp'
@@ -37,10 +35,7 @@ import { photoPanPercent } from './photo-position'
 import {
   kindLabels,
   medicationStockSummary,
-  nextOccurrence,
   occurrenceKey,
-  occurrencesOnDate,
-  occurrenceStatus,
   repeatLabels,
 } from './domain'
 import {
@@ -49,11 +44,6 @@ import {
   deleteMemory,
   deletePetData,
   deleteReminder,
-  loadGrowthRecords,
-  loadMemories,
-  loadPets,
-  loadReminders,
-  loadVoices,
   restoreBackup,
   saveGrowthRecord,
   saveMemory,
@@ -67,57 +57,37 @@ import {
   scheduleLowStockReminder,
   scheduleSnooze,
 } from './notifications'
-import { CARE_ALERT_EVENT, type CareAlertDetail } from './audio-coordination'
+import { CARE_ALERT_EVENT } from './audio-coordination'
 import { openVetReport } from './vet-report'
-
-type View = 'care' | 'health' | 'memories' | 'calendar' | 'settings' | 'relax' | 'community'
-
-function useBlobUrl(blob?: Blob) {
-  const [url, setUrl] = useState('')
-  useEffect(() => {
-    if (!blob) { setUrl(''); return }
-    const next = URL.createObjectURL(blob)
-    setUrl(next)
-    return () => URL.revokeObjectURL(next)
-  }, [blob])
-  return url
-}
-
-function BottomNav({
-  active,
-  onChange,
-}: {
-  active: View
-  onChange: (view: View) => void
-}) {
-  return (
-    <nav className="bottom-nav" aria-label="主要導覽" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
-      <button className={active === 'care' ? 'active' : ''} onClick={() => onChange('care')}>
-        <i><House size={22} weight={active === 'care' ? 'fill' : 'regular'} /></i><span style={{ fontSize: '11px' }}>今日</span>
-      </button>
-      <button className={active === 'memories' ? 'active' : ''} onClick={() => onChange('memories')}>
-        <i><Images size={22} weight={active === 'memories' ? 'fill' : 'regular'} /></i><span style={{ fontSize: '11px' }}>紀錄</span>
-      </button>
-      <button className={active === 'community' ? 'active' : ''} onClick={() => onChange('community')}>
-        <i><Users size={22} weight={active === 'community' ? 'fill' : 'regular'} /></i><span style={{ fontSize: '11px' }}>社群</span>
-      </button>
-      <button className={active === 'health' ? 'active' : ''} onClick={() => onChange('health')}>
-        <i><Heartbeat size={22} weight={active === 'health' ? 'fill' : 'regular'} /></i><span style={{ fontSize: '11px' }}>健康</span>
-      </button>
-      <button className={active === 'calendar' || active === 'relax' ? 'active' : ''} onClick={() => onChange('calendar')}>
-        <i><BellRinging size={22} weight={active === 'calendar' || active === 'relax' ? 'fill' : 'regular'} /></i><span style={{ fontSize: '11px' }}>提醒</span>
-      </button>
-    </nav>
-  )
-}
+import { BottomNav, type View } from './components/BottomNav'
+import { usePets } from './hooks/usePets'
+import { useAlarmController } from './hooks/useAlarmController'
 
 export default function App() {
-  const [pets, setPets] = useState<Pet[]>([])
-  const [reminders, setReminders] = useState<CareReminder[]>([])
-  const [voices, setVoices] = useState<VoiceClip[]>([])
-  const [memories, setMemories] = useState<MemoryEntry[]>([])
-  const [growthRecords, setGrowthRecords] = useState<GrowthRecord[]>([])
-  const [activePet, setActivePet] = useState('')
+  const {
+    pets,
+    reminders,
+    voices,
+    memories,
+    growthRecords,
+    activePet,
+    setActivePet,
+    activeReminders,
+    nextItem,
+    todayItems,
+    pet,
+    customHomeCover,
+    todayMedication,
+    medicationDone,
+    medicationMissed,
+    medicationRate,
+    stockItems,
+    vetVisits,
+    refresh,
+  } = usePets()
+
+  useAlarmController(voices)
+
   const [editorKind, setEditorKind] = useState<ReminderKind | null>(null)
   const [filter, setFilter] = useState<'today' | 'upcoming' | 'all'>('today')
   const [toast, setToast] = useState('')
@@ -126,158 +96,13 @@ export default function App() {
   const [editingPet, setEditingPet] = useState<Pet | 'new' | null>(null)
   const restoreInput = useRef<HTMLInputElement>(null)
 
-  async function refresh() {
-    const [petData, reminderData, voiceData, memoryData, growthData] = await Promise.all([
-      loadPets(),
-      loadReminders(),
-      loadVoices(),
-      loadMemories(),
-      loadGrowthRecords(),
-    ])
-    setPets(petData)
-    setReminders(reminderData)
-    setVoices(voiceData)
-    setMemories(memoryData)
-    setGrowthRecords(growthData)
-    setActivePet((current) => petData.some((item) => item.id === current) ? current : petData[0]?.id || '')
-  }
-
-  useEffect(() => {
-    void refresh()
-  }, [])
-
-  const activeReminders = useMemo(
-    () =>
-      reminders
-        .filter((reminder) => reminder.petId === activePet && reminder.enabled)
-        .map((reminder) => ({ reminder, next: nextOccurrence(reminder) }))
-        .filter((item) => item.next)
-        .sort((a, b) => (a.next?.getTime() || 0) - (b.next?.getTime() || 0)),
-    [reminders, activePet],
-  )
-  const nextItem = activeReminders[0]
-  const todayKey = new Date().toDateString()
-  const todayItems = activeReminders.filter(({ next }) => next?.toDateString() === todayKey).slice(0, 5)
   const shown = activeReminders.filter(
     ({ next }) =>
       filter === 'all' ||
-      (filter === 'today' ? next?.toDateString() === todayKey : next && next.toDateString() !== todayKey),
+      (filter === 'today'
+        ? next?.toDateString() === new Date().toDateString()
+        : next && next.toDateString() !== new Date().toDateString()),
   )
-  const pet = pets.find((item) => item.id === activePet)
-  const customHomeCover = useBlobUrl(pet?.coverPhoto)
-  const todayMedication = useMemo(
-    () =>
-      reminders
-        .filter((reminder) => reminder.petId === activePet && reminder.kind === 'medication')
-        .flatMap((reminder) =>
-          occurrencesOnDate(reminder, new Date()).map((occurrence) => ({
-            reminder,
-            occurrence,
-            status: occurrenceStatus(reminder, occurrence),
-          })),
-        )
-        .sort((a, b) => a.occurrence.getTime() - b.occurrence.getTime()),
-    [reminders, activePet],
-  )
-  const medicationDone = todayMedication.filter(
-    (item) => item.status === 'completed' || item.status === 'late',
-  ).length
-  const medicationMissed = todayMedication.filter((item) => item.status === 'missed')
-  const medicationRate = todayMedication.length
-    ? Math.round((medicationDone / todayMedication.length) * 100)
-    : 0
-  const stockItems = useMemo(
-    () =>
-      reminders
-        .filter(
-          (reminder) =>
-            reminder.petId === activePet && reminder.kind === 'medication' && reminder.medicationStock,
-        )
-        .map((reminder) => ({ reminder, summary: medicationStockSummary(reminder)! }))
-        .sort((a, b) => a.summary.remainingDays - b.summary.remainingDays),
-    [reminders, activePet],
-  )
-  const vetVisits = useMemo(
-    () =>
-      reminders
-        .filter((reminder) => reminder.petId === activePet && reminder.kind === 'vet')
-        .sort((a, b) => `${b.startDate}T${b.time}`.localeCompare(`${a.startDate}T${a.time}`)),
-    [reminders, activePet],
-  )
-
-  useEffect(() => {
-    let alertAudio: HTMLAudioElement | undefined
-    let alertUrl = ''
-    let synthInterval: number | undefined
-    let audioCtx: AudioContext | undefined
-
-    const stopAllAlerts = () => {
-      if (alertAudio) {
-        alertAudio.pause()
-        alertAudio = undefined
-      }
-      if (alertUrl) {
-        URL.revokeObjectURL(alertUrl)
-        alertUrl = ''
-      }
-      if (synthInterval) {
-        window.clearInterval(synthInterval)
-        synthInterval = undefined
-      }
-      if (audioCtx) {
-        void audioCtx.close().catch(() => {})
-        audioCtx = undefined
-      }
-    }
-
-    const handleCareAlert = (event: Event) => {
-      const detail = (event as CustomEvent<CareAlertDetail>).detail
-      if (detail.phase === 'completed') {
-        stopAllAlerts()
-        return
-      }
-
-      stopAllAlerts()
-
-      const clip = voices.find((item) => item.id === detail.voiceClipId)
-      if (clip) {
-        alertUrl = URL.createObjectURL(clip.blob)
-        alertAudio = new Audio(alertUrl)
-        alertAudio.loop = true
-        void alertAudio.play().catch((e) => console.error('Audio play blocked:', e))
-      } else {
-        try {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-          audioCtx = ctx
-          const playBeep = () => {
-            if (ctx.state === 'closed') return
-            const osc = ctx.createOscillator()
-            const gain = ctx.createGain()
-            const now = ctx.currentTime
-            osc.type = 'sine'
-            osc.frequency.setValueAtTime(659.25, now) // Mi
-            osc.frequency.setValueAtTime(880.00, now + 0.15) // La
-            gain.gain.setValueAtTime(0.0001, now)
-            gain.gain.exponentialRampToValueAtTime(0.12, now + 0.02)
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5)
-            osc.connect(gain)
-            gain.connect(ctx.destination)
-            osc.start(now)
-            osc.stop(now + 0.6)
-          }
-          playBeep()
-          synthInterval = window.setInterval(playBeep, 1500)
-        } catch (e) {
-          console.error('Synth alert blocked:', e)
-        }
-      }
-    }
-    window.addEventListener(CARE_ALERT_EVENT, handleCareAlert)
-    return () => {
-      window.removeEventListener(CARE_ALERT_EVENT, handleCareAlert)
-      stopAllAlerts()
-    }
-  }, [voices])
 
   function notify(text: string) {
     setToast(text)
