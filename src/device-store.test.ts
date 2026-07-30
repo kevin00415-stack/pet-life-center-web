@@ -216,4 +216,32 @@ describe('Phase 0 Core Robustness Tests', () => {
     expect(containsMock).toHaveBeenCalledWith('pets')
     expect(databaseMock.createObjectStore).not.toHaveBeenCalled()
   })
+
+  it('supports added microchip, emergency contact, veterinary hospital, and medical notes fields on pet profile', async () => {
+    const advancedPet: Pet = {
+      id: 'pet-advanced-99',
+      name: '可可',
+      avatar: '🐶',
+      species: 'dog',
+      microchipNumber: '900138291002',
+      microchipStatus: '已登記',
+      lastScanDate: '2026-07-28',
+      emergencyContact: '爸爸 0912-888-888',
+      vetHospital: '安心動物醫院',
+      medicalNotes: '對抗生素過敏，需多喝水',
+    }
+
+    await savePet(advancedPet)
+
+    const pets = await loadPets()
+    const loaded = pets.find((p) => p.id === 'pet-advanced-99')
+
+    expect(loaded).toBeDefined()
+    expect(loaded?.microchipNumber).toBe('900138291002')
+    expect(loaded?.microchipStatus).toBe('已登記')
+    expect(loaded?.lastScanDate).toBe('2026-07-28')
+    expect(loaded?.emergencyContact).toBe('爸爸 0912-888-888')
+    expect(loaded?.vetHospital).toBe('安心動物醫院')
+    expect(loaded?.medicalNotes).toBe('對抗生素過敏，需多喝水')
+  })
 })

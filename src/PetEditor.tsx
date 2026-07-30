@@ -195,6 +195,12 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
       coverPhoto: cover,
       coverMimeType: cover?.type,
       coverPosition: { x: coverX, y: coverY, zoom: coverZoom },
+      microchipNumber: String(formData.get('microchipNumber') || ''),
+      microchipStatus: String(formData.get('microchipStatus') || '未植入'),
+      lastScanDate: String(formData.get('lastScanDate') || ''),
+      emergencyContact: String(formData.get('emergencyContact') || ''),
+      vetHospital: String(formData.get('vetHospital') || ''),
+      medicalNotes: String(formData.get('medicalNotes') || ''),
     })
     setSaving(false)
   }
@@ -275,7 +281,77 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
         <label>照片大小<input type="range" min="1" max="2" step=".05" value={coverZoom} onChange={(event) => setCoverZoom(Number(event.target.value))} /></label>
       </div>}
     </fieldset>
-    <div className="two-fields"><label>名字<input name="name" defaultValue={pet?.name} required placeholder="毛孩名字" /></label><label>種類<select name="species" defaultValue={pet?.species || '狗狗'}><option>狗狗</option><option>貓咪</option><option>兔兔</option><option>鳥類</option><option>其他</option></select></label></div><label>生日（選填）<input type="date" name="birthDate" defaultValue={pet?.birthDate} /></label><div className="privacy-note">毛孩照片與資料只保存在這台裝置</div><button className="save-reminder" disabled={saving}>{saving ? '正在保存…' : '保存毛孩檔案'}</button>
-    {pet && onDelete && <button type="button" className="delete-pet" onClick={() => void onDelete(pet)}><Trash />刪除這隻毛孩與相關紀錄</button>}
+    {/* 🐶 Basic Information */}
+    <div className="cozy-editor-card card-basic">
+      <h3>🐶 基本資料</h3>
+      <div className="two-fields">
+        <label>名字
+          <input name="name" defaultValue={pet?.name} required placeholder="例如：哈吉" style={{ fontSize: '16px', padding: '10px 12px' }} />
+        </label>
+        <label>種類
+          <select name="species" defaultValue={pet?.species || '狗狗'} style={{ fontSize: '16px', padding: '10px 12px' }}>
+            <option>狗狗</option>
+            <option>貓咪</option>
+            <option>兔兔</option>
+            <option>鳥類</option>
+            <option>其他</option>
+          </select>
+        </label>
+      </div>
+      <label>生日（選填）
+        <input type="date" name="birthDate" defaultValue={pet?.birthDate} style={{ fontSize: '16px', padding: '10px 12px' }} />
+      </label>
+    </div>
+
+    {/* 💉 Medical Information */}
+    <div className="cozy-editor-card card-medical">
+      <h3>💉 醫療與晶片資訊</h3>
+      <div className="two-fields">
+        <label>晶片號碼（選填）
+          <input name="microchipNumber" defaultValue={pet?.microchipNumber} placeholder="例如：900138291..." style={{ fontSize: '16px', padding: '10px 12px' }} />
+        </label>
+        <label>晶片登記狀態
+          <select name="microchipStatus" defaultValue={pet?.microchipStatus || '未植入'} style={{ fontSize: '16px', padding: '10px 12px' }}>
+            <option>已登記</option>
+            <option>未登記</option>
+            <option>未植入</option>
+          </select>
+        </label>
+      </div>
+      <label>最後掃描日期（選填）
+        <input type="date" name="lastScanDate" defaultValue={pet?.lastScanDate} style={{ fontSize: '16px', padding: '10px 12px' }} />
+      </label>
+      <label>主治醫院 / 醫師（選填）
+        <input name="vetHospital" defaultValue={pet?.vetHospital} placeholder="例如：安心動物醫院 林醫師" style={{ fontSize: '16px', padding: '10px 12px' }} />
+      </label>
+    </div>
+
+    {/* 📞 Emergency */}
+    <div className="cozy-editor-card card-emergency">
+      <h3>📞 緊急聯絡</h3>
+      <label>緊急聯絡人與電話（選填）
+        <input name="emergencyContact" defaultValue={pet?.emergencyContact} placeholder="例如：媽媽 0912-345-678" style={{ fontSize: '16px', padding: '10px 12px' }} />
+      </label>
+    </div>
+
+    {/* 📝 Notes */}
+    <div className="cozy-editor-card card-notes">
+      <h3>📝 備註與過敏史</h3>
+      <label>醫療備註事項（選填）
+        <textarea name="medicalNotes" defaultValue={pet?.medicalNotes} placeholder="例如：對盤尼西林過敏、不喜歡剪指甲" style={{ fontSize: '16px', padding: '10px 12px', minHeight: '90px', fontFamily: 'inherit', lineHeight: '1.5' }} />
+      </label>
+    </div>
+
+    <div className="privacy-note" style={{ fontSize: '13px', color: '#888', margin: '14px 0', textAlign: 'center' }}>毛孩照片與資料只保存在這台裝置</div>
+
+    <button className="save-reminder" disabled={saving} style={{ fontSize: '17px', padding: '14px', borderRadius: '12px', fontWeight: 'bold' }}>
+      {saving ? '正在保存…' : '保存毛孩檔案'}
+    </button>
+
+    {pet && onDelete && (
+      <button type="button" className="delete-pet" onClick={() => void onDelete(pet)} style={{ marginTop: '16px', padding: '12px', borderRadius: '10px', fontSize: '14px' }}>
+        <Trash /> 刪除這隻毛孩與相關紀錄
+      </button>
+    )}
   </form></section></div>
 }
