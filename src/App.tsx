@@ -12,6 +12,7 @@ import {
   Package,
   PencilSimple,
   Plus,
+  Users,
 } from '@phosphor-icons/react'
 import './App.css'
 import ReminderEditor from './ReminderEditor'
@@ -23,6 +24,7 @@ import PetEditor from './PetEditor'
 import CareCalendar from './CareCalendar'
 import SettingsPage from './SettingsPage'
 import RelaxPage from './RelaxPage'
+import CommunityHome from './CommunityHome'
 import brandMark from './assets/brand-mark.webp'
 import homeIsland from './assets/home-island-v1.webp'
 import healthFeatureIcon from './assets/feature-icons/health-3d.webp'
@@ -68,7 +70,7 @@ import {
 import { CARE_ALERT_EVENT, type CareAlertDetail } from './audio-coordination'
 import { openVetReport } from './vet-report'
 
-type View = 'care' | 'health' | 'memories' | 'calendar' | 'settings' | 'relax'
+type View = 'care' | 'health' | 'memories' | 'calendar' | 'settings' | 'relax' | 'community'
 
 function useBlobUrl(blob?: Blob) {
   const [url, setUrl] = useState('')
@@ -84,28 +86,26 @@ function useBlobUrl(blob?: Blob) {
 function BottomNav({
   active,
   onChange,
-  onAdd,
 }: {
   active: View
   onChange: (view: View) => void
-  onAdd: () => void
 }) {
   return (
-    <nav className="bottom-nav" aria-label="主要導覽">
+    <nav className="bottom-nav" aria-label="主要導覽" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
       <button className={active === 'care' ? 'active' : ''} onClick={() => onChange('care')}>
-        <i><House size={23} weight={active === 'care' ? 'fill' : 'regular'} /></i><span>今日</span>
+        <i><House size={22} weight={active === 'care' ? 'fill' : 'regular'} /></i><span style={{ fontSize: '11px' }}>今日</span>
       </button>
       <button className={active === 'memories' ? 'active' : ''} onClick={() => onChange('memories')}>
-        <i><Images size={23} weight={active === 'memories' ? 'fill' : 'regular'} /></i><span>紀錄</span>
+        <i><Images size={22} weight={active === 'memories' ? 'fill' : 'regular'} /></i><span style={{ fontSize: '11px' }}>紀錄</span>
       </button>
-      <button className="primary-add" onClick={onAdd} aria-label="快速新增照護提醒">
-        <i><Plus size={29} weight="bold" /></i>
+      <button className={active === 'community' ? 'active' : ''} onClick={() => onChange('community')}>
+        <i><Users size={22} weight={active === 'community' ? 'fill' : 'regular'} /></i><span style={{ fontSize: '11px' }}>社群</span>
       </button>
       <button className={active === 'health' ? 'active' : ''} onClick={() => onChange('health')}>
-        <i><Heartbeat size={23} weight={active === 'health' ? 'fill' : 'regular'} /></i><span>健康</span>
+        <i><Heartbeat size={22} weight={active === 'health' ? 'fill' : 'regular'} /></i><span style={{ fontSize: '11px' }}>健康</span>
       </button>
       <button className={active === 'calendar' || active === 'relax' ? 'active' : ''} onClick={() => onChange('calendar')}>
-        <i><BellRinging size={23} weight={active === 'calendar' || active === 'relax' ? 'fill' : 'regular'} /></i><span>提醒</span>
+        <i><BellRinging size={22} weight={active === 'calendar' || active === 'relax' ? 'fill' : 'regular'} /></i><span style={{ fontSize: '11px' }}>提醒</span>
       </button>
     </nav>
   )
@@ -454,11 +454,6 @@ export default function App() {
     <BottomNav
       active={view}
       onChange={setView}
-      onAdd={() => {
-        setView('care')
-        if (pet) setEditorKind('medication')
-        else setEditingPet('new')
-      }}
     />
   )
 
@@ -528,6 +523,14 @@ export default function App() {
     return (
       <main className="app-shell">
         <RelaxPage onBack={() => setView('care')} />
+        {nav}
+      </main>
+    )
+  }
+  if (view === 'community') {
+    return (
+      <main className="app-shell">
+        <CommunityHome onBack={() => setView('care')} />
         {nav}
       </main>
     )

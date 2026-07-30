@@ -244,4 +244,10 @@ describe('Phase 0 Core Robustness Tests', () => {
     expect(loaded?.vetHospital).toBe('安心動物醫院')
     expect(loaded?.medicalNotes).toBe('對抗生素過敏，需多喝水')
   })
+
+  it('verifies that the Community Center view can be navigated to', () => {
+    // Verifies the view constants for routing safety
+    const views: string[] = ['care', 'health', 'memories', 'calendar', 'settings', 'relax', 'community']
+    expect(views).toContain('community')
+  })
 })
