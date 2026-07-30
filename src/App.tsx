@@ -540,7 +540,13 @@ export default function App() {
       <header className="topbar">
         <div className="brand">
           <span><img src={brandMark} alt="毛寵健廚品牌標誌" /></span>
-          <div><b>毛孩生活中心</b><small>安心陪伴每一天</small></div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <b>毛孩生活中心</b>
+              <span style={{ fontSize: '10px', background: '#d3a665', color: '#fff', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>Phase 0 Test</span>
+            </div>
+            <small>安心陪伴每一天</small>
+          </div>
         </div>
         <button className="more" aria-label="開啟設定" onClick={() => setView('settings')}>
           <GearSix size={23} weight="bold" />
