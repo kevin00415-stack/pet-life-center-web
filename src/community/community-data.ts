@@ -61,6 +61,11 @@ export const mockTopics: CommunityTopic[] = [
   },
 ]
 
+export const mockUnreadChat = {
+  count: 3,
+  isMock: true,
+}
+
 export const mockBroadcasts: CommunityBroadcast[] = [
   {
     id: 'bc-1',

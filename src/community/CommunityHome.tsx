@@ -7,6 +7,7 @@ import { EventCard } from './components/EventCard'
 import { PrivateChatView } from './components/PrivateChatView'
 import { CommunityTabs } from './components/CommunityTabs'
 import { useTranslation } from '../i18n/translations'
+import { mockUnreadChat } from './community-data'
 
 interface CommunityHomeProps {
   onBack: () => void
@@ -77,7 +78,7 @@ export default function CommunityHome({ onBack }: CommunityHomeProps) {
       </header>
 
       {/* Sub-navigation tabs */}
-      <CommunityTabs activeTab={activeTab} onTabChange={setActiveTab} unreadCount={3} />
+      <CommunityTabs activeTab={activeTab} onTabChange={setActiveTab} unreadCount={mockUnreadChat.count} />
 
       {/* Main view router */}
       <div style={{ padding: '0 16px' }}>

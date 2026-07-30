@@ -20,6 +20,8 @@ export const en: Record<keyof typeof zhTW, string> = {
   emergency: 'Emergency',
   normal: 'Notice',
   publishDate: 'Published Date',
+  officialHospital: 'Official Certified Hospital',
+  notifEnabledTag: 'Notifications Enabled (Snoozed)',
 
   // Event card localization
   seminarLabel: 'Online Seminar',

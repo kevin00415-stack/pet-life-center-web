@@ -18,6 +18,8 @@ export const zhTW = {
   emergency: '緊急公告',
   normal: '一般公告',
   publishDate: '發布日期',
+  officialHospital: '官方認證醫院',
+  notifEnabledTag: '推播開啟 (預留)',
 
   // Event card localization
   seminarLabel: '線上照護講座',

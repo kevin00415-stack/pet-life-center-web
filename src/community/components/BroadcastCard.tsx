@@ -31,14 +31,14 @@ export function BroadcastCard({
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <h4 style={{ margin: 0, fontSize: '15px', color: '#173f3b', fontWeight: 'bold' }}>{hospital}</h4>
           {verified && (
-            <span className="hospital-verified-placeholder" style={{ color: '#4b9cd3', display: 'inline-flex', alignItems: 'center' }} title="官方認證醫院" aria-label="認證標章 placeholder">
+            <span className="hospital-verified-placeholder" style={{ color: '#4b9cd3', display: 'inline-flex', alignItems: 'center' }} title={t('officialHospital')} aria-label="認證標章 placeholder">
               <SealCheck size={15} weight="fill" />
             </span>
           )}
         </div>
         <div style={{ display: 'flex', gap: '6px' }}>
           {notificationEnabled && (
-            <span className="notif-badge-placeholder" style={{ color: '#d3a665', display: 'inline-flex', alignItems: 'center' }} title="推播開啟 (預留)">
+            <span className="notif-badge-placeholder" style={{ color: '#d3a665', display: 'inline-flex', alignItems: 'center' }} title={t('notifEnabledTag')}>
               <Notification size={15} weight="fill" />
             </span>
           )}
