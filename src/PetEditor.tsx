@@ -282,11 +282,11 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
       </div>}
     </fieldset>
     {/* 🐶 Basic Information */}
-    <div className="cozy-editor-card card-basic">
-      <h3>🐶 基本資料</h3>
+    <div className="cozy-editor-card card-basic premium-editor-card">
+      <h3>🐶 核心基本資料</h3>
       <div className="two-fields">
-        <label>名字
-          <input name="name" defaultValue={pet?.name} required placeholder="例如：哈吉" style={{ fontSize: '16px', padding: '10px 12px' }} />
+        <label className="required-field">名字 (必填)
+          <input name="name" defaultValue={pet?.name} required placeholder="例如：哈吉" style={{ fontSize: '16px', padding: '10px 12px', borderLeft: '4px solid var(--honey)' }} />
         </label>
         <label>種類
           <select name="species" defaultValue={pet?.species || '狗狗'} style={{ fontSize: '16px', padding: '10px 12px' }}>
