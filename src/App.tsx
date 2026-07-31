@@ -1,63 +1,27 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  BellRinging,
-  CaretRight,
-  CheckCircle,
-  Clock,
-  GearSix,
-  Heartbeat,
-  House,
-  Images,
-  LockKey,
-  Package,
-  PencilSimple,
-  Plus,
-} from '@phosphor-icons/react'
+import { useRef, useState } from 'react'
 import './App.css'
 import ReminderEditor from './ReminderEditor'
 import VetVisitPanel from './VetVisitPanel'
 import HealthTimeline from './HealthTimeline'
 import MemoriesPage from './MemoriesPage'
-import PetAvatar from './PetAvatar'
 import PetEditor from './PetEditor'
 import CareCalendar from './CareCalendar'
 import SettingsPage from './SettingsPage'
 import RelaxPage from './RelaxPage'
-import brandMark from './assets/brand-mark.webp'
-import homeIsland from './assets/home-island-v1.webp'
-import healthFeatureIcon from './assets/feature-icons/health-3d.webp'
-import reminderFeatureIcon from './assets/feature-icons/reminder-3d.webp'
-import memoriesFeatureIcon from './assets/feature-icons/memories-3d.webp'
-import musicFeatureIcon from './assets/feature-icons/music-3d.webp'
-import type { CareReminder, GrowthRecord, MemoryEntry, Pet, ReminderKind, VoiceClip } from './domain'
-import { kindIconAssets } from './reminder-kind-assets'
-import { photoPanPercent } from './photo-position'
+import CommunityHome from './community/CommunityHome'
+import type { CareReminder, VoiceClip, MemoryEntry, Pet, ReminderKind, GrowthRecord } from './domain'
 import {
-  kindLabels,
-  medicationStockSummary,
-  nextOccurrence,
-  occurrenceKey,
-  occurrencesOnDate,
-  occurrenceStatus,
-  repeatLabels,
-} from './domain'
-import {
-  createBackup,
-  deleteGrowthRecord,
-  deleteMemory,
   deletePetData,
   deleteReminder,
-  loadGrowthRecords,
-  loadMemories,
-  loadPets,
-  loadReminders,
-  loadVoices,
-  restoreBackup,
-  saveGrowthRecord,
   saveMemory,
   savePet,
   saveReminder,
   saveVoice,
+  deleteMemory,
+  deleteGrowthRecord,
+  saveGrowthRecord,
+  restoreBackup,
+  createBackup,
 } from './device-store'
 import {
   cancelCareReminder,
@@ -65,59 +29,37 @@ import {
   scheduleLowStockReminder,
   scheduleSnooze,
 } from './notifications'
-import { CARE_ALERT_EVENT, type CareAlertDetail } from './audio-coordination'
+import { CARE_ALERT_EVENT } from './audio-coordination'
 import { openVetReport } from './vet-report'
-
-type View = 'care' | 'health' | 'memories' | 'calendar' | 'settings' | 'relax'
-
-function useBlobUrl(blob?: Blob) {
-  const [url, setUrl] = useState('')
-  useEffect(() => {
-    if (!blob) { setUrl(''); return }
-    const next = URL.createObjectURL(blob)
-    setUrl(next)
-    return () => URL.revokeObjectURL(next)
-  }, [blob])
-  return url
-}
-
-function BottomNav({
-  active,
-  onChange,
-  onAdd,
-}: {
-  active: View
-  onChange: (view: View) => void
-  onAdd: () => void
-}) {
-  return (
-    <nav className="bottom-nav" aria-label="主要導覽">
-      <button className={active === 'care' ? 'active' : ''} onClick={() => onChange('care')}>
-        <i><House size={23} weight={active === 'care' ? 'fill' : 'regular'} /></i><span>今日</span>
-      </button>
-      <button className={active === 'memories' ? 'active' : ''} onClick={() => onChange('memories')}>
-        <i><Images size={23} weight={active === 'memories' ? 'fill' : 'regular'} /></i><span>紀錄</span>
-      </button>
-      <button className="primary-add" onClick={onAdd} aria-label="快速新增照護提醒">
-        <i><Plus size={29} weight="bold" /></i>
-      </button>
-      <button className={active === 'health' ? 'active' : ''} onClick={() => onChange('health')}>
-        <i><Heartbeat size={23} weight={active === 'health' ? 'fill' : 'regular'} /></i><span>健康</span>
-      </button>
-      <button className={active === 'calendar' || active === 'relax' ? 'active' : ''} onClick={() => onChange('calendar')}>
-        <i><BellRinging size={23} weight={active === 'calendar' || active === 'relax' ? 'fill' : 'regular'} /></i><span>提醒</span>
-      </button>
-    </nav>
-  )
-}
+import { BottomNav, type View } from './components/BottomNav'
+import { usePets } from './hooks/usePets'
+import { useAlarmController } from './hooks/useAlarmController'
+import { CareHomeView } from './components/CareHomeView'
 
 export default function App() {
-  const [pets, setPets] = useState<Pet[]>([])
-  const [reminders, setReminders] = useState<CareReminder[]>([])
-  const [voices, setVoices] = useState<VoiceClip[]>([])
-  const [memories, setMemories] = useState<MemoryEntry[]>([])
-  const [growthRecords, setGrowthRecords] = useState<GrowthRecord[]>([])
-  const [activePet, setActivePet] = useState('')
+  const {
+    pets,
+    reminders,
+    voices,
+    memories,
+    growthRecords,
+    activePet,
+    setActivePet,
+    activeReminders,
+    nextItem,
+    todayItems,
+    pet,
+    customHomeCover,
+    todayMedication,
+    medicationDone,
+    medicationMissed,
+    medicationRate,
+    vetVisits,
+    refresh,
+  } = usePets()
+
+  useAlarmController(voices)
+
   const [editorKind, setEditorKind] = useState<ReminderKind | null>(null)
   const [filter, setFilter] = useState<'today' | 'upcoming' | 'all'>('today')
   const [toast, setToast] = useState('')
@@ -126,117 +68,13 @@ export default function App() {
   const [editingPet, setEditingPet] = useState<Pet | 'new' | null>(null)
   const restoreInput = useRef<HTMLInputElement>(null)
 
-  async function refresh() {
-    const [petData, reminderData, voiceData, memoryData, growthData] = await Promise.all([
-      loadPets(),
-      loadReminders(),
-      loadVoices(),
-      loadMemories(),
-      loadGrowthRecords(),
-    ])
-    setPets(petData)
-    setReminders(reminderData)
-    setVoices(voiceData)
-    setMemories(memoryData)
-    setGrowthRecords(growthData)
-    setActivePet((current) => petData.some((item) => item.id === current) ? current : petData[0]?.id || '')
-  }
-
-  useEffect(() => {
-    void refresh()
-  }, [])
-
-  const activeReminders = useMemo(
-    () =>
-      reminders
-        .filter((reminder) => reminder.petId === activePet && reminder.enabled)
-        .map((reminder) => ({ reminder, next: nextOccurrence(reminder) }))
-        .filter((item) => item.next)
-        .sort((a, b) => (a.next?.getTime() || 0) - (b.next?.getTime() || 0)),
-    [reminders, activePet],
-  )
-  const nextItem = activeReminders[0]
-  const todayKey = new Date().toDateString()
-  const todayItems = activeReminders.filter(({ next }) => next?.toDateString() === todayKey).slice(0, 5)
   const shown = activeReminders.filter(
     ({ next }) =>
       filter === 'all' ||
-      (filter === 'today' ? next?.toDateString() === todayKey : next && next.toDateString() !== todayKey),
+      (filter === 'today'
+        ? next?.toDateString() === new Date().toDateString()
+        : next && next.toDateString() !== new Date().toDateString()),
   )
-  const pet = pets.find((item) => item.id === activePet)
-  const customHomeCover = useBlobUrl(pet?.coverPhoto)
-  const todayMedication = useMemo(
-    () =>
-      reminders
-        .filter((reminder) => reminder.petId === activePet && reminder.kind === 'medication')
-        .flatMap((reminder) =>
-          occurrencesOnDate(reminder, new Date()).map((occurrence) => ({
-            reminder,
-            occurrence,
-            status: occurrenceStatus(reminder, occurrence),
-          })),
-        )
-        .sort((a, b) => a.occurrence.getTime() - b.occurrence.getTime()),
-    [reminders, activePet],
-  )
-  const medicationDone = todayMedication.filter(
-    (item) => item.status === 'completed' || item.status === 'late',
-  ).length
-  const medicationMissed = todayMedication.filter((item) => item.status === 'missed')
-  const medicationRate = todayMedication.length
-    ? Math.round((medicationDone / todayMedication.length) * 100)
-    : 0
-  const stockItems = useMemo(
-    () =>
-      reminders
-        .filter(
-          (reminder) =>
-            reminder.petId === activePet && reminder.kind === 'medication' && reminder.medicationStock,
-        )
-        .map((reminder) => ({ reminder, summary: medicationStockSummary(reminder)! }))
-        .sort((a, b) => a.summary.remainingDays - b.summary.remainingDays),
-    [reminders, activePet],
-  )
-  const vetVisits = useMemo(
-    () =>
-      reminders
-        .filter((reminder) => reminder.petId === activePet && reminder.kind === 'vet')
-        .sort((a, b) => `${b.startDate}T${b.time}`.localeCompare(`${a.startDate}T${a.time}`)),
-    [reminders, activePet],
-  )
-
-  useEffect(() => {
-    let alertAudio: HTMLAudioElement | undefined
-    let alertUrl = ''
-    const handleCareAlert = (event: Event) => {
-      const detail = (event as CustomEvent<CareAlertDetail>).detail
-      if (detail.phase === 'completed') {
-        alertAudio?.pause()
-        if (alertUrl) URL.revokeObjectURL(alertUrl)
-        alertAudio = undefined
-        alertUrl = ''
-        return
-      }
-      const clip = voices.find((item) => item.id === detail.voiceClipId)
-      if (!clip) return
-      alertAudio?.pause()
-      if (alertUrl) URL.revokeObjectURL(alertUrl)
-      alertUrl = URL.createObjectURL(clip.blob)
-      alertAudio = new Audio(alertUrl)
-      alertAudio.onended = () => {
-        if (alertUrl) URL.revokeObjectURL(alertUrl)
-        alertAudio = undefined
-        alertUrl = ''
-      }
-      void alertAudio.play()
-    }
-    window.addEventListener(CARE_ALERT_EVENT, handleCareAlert)
-    return () => {
-      window.removeEventListener(CARE_ALERT_EVENT, handleCareAlert)
-      alertAudio?.pause()
-      if (alertUrl) URL.revokeObjectURL(alertUrl)
-    }
-  }, [voices])
 
   function notify(text: string) {
     setToast(text)
@@ -267,30 +105,37 @@ export default function App() {
     occurrence: Date,
     status: 'completed' | 'late' | 'skipped',
   ) {
-    const key = occurrenceKey(reminder.id, occurrence)
-    const previousStock = medicationStockSummary(reminder)
-    const updated = {
+    window.dispatchEvent(new CustomEvent(CARE_ALERT_EVENT, { detail: { phase: 'completed', notificationId: 0 } }))
+    const previousStock = reminders.find((r) => r.id === reminder.id)
+    const completedOccurrences = status === 'skipped'
+      ? reminder.completedOccurrences
+      : [...new Set([...reminder.completedOccurrences, reminder.id + '-' + occurrence.toISOString()])]
+    const updated: CareReminder = {
       ...reminder,
-      completedOccurrences:
-        status === 'skipped'
-          ? reminder.completedOccurrences
-          : [...new Set([...reminder.completedOccurrences, key])],
+      completedOccurrences,
       occurrenceRecords: [
-        ...(reminder.occurrenceRecords || []).filter((item) => item.key !== key),
-        { key, status, recordedAt: Date.now() },
+        ...(reminder.occurrenceRecords || []).filter((item) => item.key !== (reminder.id + '-' + occurrence.toISOString())),
+        { key: (reminder.id + '-' + occurrence.toISOString()), status, recordedAt: Date.now() },
       ],
     }
     if (updated.repeat === 'once') updated.enabled = false
     await saveReminder(updated)
-    const currentStock = medicationStockSummary(updated)
+
+    const completed = updated.completedOccurrences || []
+    const initial = updated.medicationStock?.initialQuantity || 0
+    const dose = updated.medicationStock?.doseQuantity || 1
+    const threshold = updated.medicationStock?.lowStockThreshold || 0
+    const remaining = Math.max(0, initial - completed.length * dose)
+    const needsRefill = remaining <= threshold
+
     const targetPet = pets.find((item) => item.id === reminder.petId)
-    if (targetPet && currentStock?.needsRefill && !previousStock?.needsRefill) {
-      await scheduleLowStockReminder(updated, targetPet, currentStock.remaining)
+    if (targetPet && needsRefill && previousStock?.medicationStock && remaining > threshold) {
+      await scheduleLowStockReminder(updated, targetPet, remaining)
     }
     await refresh()
     notify(
-      currentStock?.needsRefill && status !== 'skipped'
-        ? `已記錄，${reminder.title}只剩 ${currentStock.remaining} ${reminder.medicationStock?.unit}`
+      needsRefill && status !== 'skipped'
+        ? `已記錄，${reminder.title}只剩 ${remaining} ${reminder.medicationStock?.unit}`
         : status === 'late'
           ? '已記錄補吃，完成率已更新'
           : status === 'skipped'
@@ -355,14 +200,15 @@ export default function App() {
     notify('成長紀錄已保存在手機')
   }
 
-  async function removeGrowth(record: GrowthRecord) {
-    if (!window.confirm(`確定刪除 ${record.date} 的體重紀錄嗎？`)) return
+  async function removeGrowth(record: { id: string }) {
+    if (!window.confirm('確定刪除體重紀錄嗎？')) return
     await deleteGrowthRecord(record.id)
     await refresh()
     notify('成長紀錄已刪除')
   }
 
   async function snooze(reminder: CareReminder) {
+    window.dispatchEvent(new CustomEvent(CARE_ALERT_EVENT, { detail: { phase: 'completed', notificationId: 0 } }))
     const targetPet = pets.find((item) => item.id === reminder.petId)
     if (!targetPet) return
     const result = await scheduleSnooze(reminder, targetPet, 10)
@@ -396,6 +242,8 @@ export default function App() {
 
   async function importData(file?: File) {
     if (!file) return
+    const confirmed = window.confirm('確定要恢復資料嗎？這將會清除您目前裝置上的所有毛孩檔案、提醒、日記與成長紀錄，並覆蓋為備份檔中的資料。此動作無法復原。')
+    if (!confirmed) return
     try {
       await restoreBackup(await file.text())
       await refresh()
@@ -409,11 +257,6 @@ export default function App() {
     <BottomNav
       active={view}
       onChange={setView}
-      onAdd={() => {
-        setView('care')
-        if (pet) setEditorKind('medication')
-        else setEditingPet('new')
-      }}
     />
   )
 
@@ -487,233 +330,52 @@ export default function App() {
       </main>
     )
   }
-
-  const lowStock = stockItems.find(({ summary }) => summary.needsRefill)
+  if (view === 'community') {
+    return (
+      <main className="app-shell">
+        <CommunityHome onBack={() => setView('care')} />
+        {nav}
+      </main>
+    )
+  }
 
   return (
-    <main className="app-shell cozy-home">
-      <header className="topbar">
-        <div className="brand">
-          <span><img src={brandMark} alt="毛寵健廚品牌標誌" /></span>
-          <div><b>毛孩生活中心</b><small>安心陪伴每一天</small></div>
-        </div>
-        <button className="more" aria-label="開啟設定" onClick={() => setView('settings')}>
-          <GearSix size={23} weight="bold" />
-        </button>
-      </header>
-
-      <nav className="pet-tabs cozy-pet-tabs" aria-label="選擇毛孩">
-        {pets.map((item) => (
-          <button
-            key={item.id}
-            className={item.id === activePet ? 'active' : ''}
-            onClick={() => setActivePet(item.id)}
-          >
-            <PetAvatar pet={item} />
-            <span><b>{item.name}</b><small>{item.species}</small></span>
-            {item.id === activePet && <CheckCircle size={19} weight="fill" />}
-          </button>
-        ))}
-        <button className="add-pet" onClick={() => setEditingPet('new')}>
-          <i><Plus size={20} weight="bold" /></i>
-          <span><b>新增毛孩</b><small>建立照護檔案</small></span>
-        </button>
-        {pet && (
-          <button className="edit-pet-tab" onClick={() => setEditingPet(pet)}>
-            <i><PencilSimple size={20} weight="bold" /></i>
-            <span><b>編輯檔案</b><small>照片與基本資料</small></span>
-          </button>
-        )}
-      </nav>
-
-      {!pet ? (
-        <section className="first-pet-onboarding">
-          <img src={brandMark} alt="毛寵健廚品牌標誌" />
-          <span>WELCOME HOME</span>
-          <h1>先建立你的毛孩</h1>
-          <p>輸入名字、照片與生日後，首頁、提醒、健康時間軸和回憶相簿都會變成牠的專屬空間。</p>
-          <button onClick={() => setEditingPet('new')}><Plus size={22} weight="bold" />建立第一位毛孩</button>
-          <small><LockKey size={17} />資料只保存在這台裝置，不會自動上傳。</small>
-        </section>
-      ) : (<>
-      <section className={`island-hero ${customHomeCover ? 'custom-pet-cover' : ''}`} aria-label={`${pet.name}的首頁封面`}>
-        <img
-          src={customHomeCover || homeIsland}
-          alt={customHomeCover ? `${pet.name}的首頁照片` : '狗狗與貓咪在溫暖居家小島上休息'}
-          style={customHomeCover ? (() => {
-            const position = { x: pet.coverPosition?.x ?? 50, y: pet.coverPosition?.y ?? 50 }
-            const zoom = pet.coverPosition?.zoom ?? 1
-            const pan = photoPanPercent(position, zoom)
-            return {
-              objectPosition: `${position.x}% ${position.y}%`,
-              transform: `translate3d(${pan.x}%, ${pan.y}%, 0) scale(${zoom})`,
-            }
-          })() : undefined}
-        />
-        <button className="change-cover-photo" onClick={() => setEditingPet(pet)}><Images size={18} />更換首頁照片</button>
-      </section>
-      <section className="hero-reminder" aria-label="下一個照護提醒">
-          <div className="hero-time">
-            <i><Clock size={26} weight="duotone" /></i>
-            <span><small>下一個照護提醒</small><strong>{nextItem?.next?.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }) || '--:--'}</strong><em>{nextItem?.reminder.title || '今天沒有待辦'}</em></span>
-          </div>
-          <div className="hero-actions">
-            <button className="complete" disabled={!nextItem} onClick={() => nextItem && void complete(nextItem)}>
-              <CheckCircle size={21} weight="fill" />完成
-            </button>
-            <button disabled={!nextItem} onClick={() => nextItem && void snooze(nextItem.reminder)}>
-              <Clock size={20} weight="fill" />延後
-            </button>
-          </div>
-      </section>
-
-      {pet && (
-        <div className="pet-profile-actions">
-          <span>{pet.birthDate ? `${pet.name}・生日 ${pet.birthDate}` : `${pet.name}・可加入生日與專屬照片`}</span>
-        </div>
-      )}
-
-      <section className="game-actions" aria-label="常用功能">
-        <button className="health-action" onClick={() => setView('health')}>
-          <i><img src={healthFeatureIcon} alt="" /></i><b>健康紀錄</b><small>體重與看診</small>
-        </button>
-        <button className="reminder-action" onClick={() => setEditorKind('medication')}>
-          <i><img src={reminderFeatureIcon} alt="" /></i><b>照護提醒</b><small>餵藥與回診</small>
-          {activeReminders.length > 0 && <em>{activeReminders.length}</em>}
-        </button>
-        <button className="memory-action" onClick={() => setView('memories')}>
-          <i><img src={memoriesFeatureIcon} alt="" /></i><b>回憶相簿</b><small>照片與故事</small>
-        </button>
-        <button className="music-action" onClick={() => setView('relax')}>
-          <i><img src={musicFeatureIcon} alt="" /></i><b>舒壓音樂</b><small>離線安心播放</small>
-        </button>
-      </section>
-
-      <section className="today-journey">
-        <div className="section-heading">
-          <div><span>DAILY CARE</span><h2>今日照護</h2></div>
-          <button onClick={() => setView('calendar')}>查看全部 <CaretRight size={16} /></button>
-        </div>
-        {todayItems.length ? (
-          <div className="journey-track">
-            {todayItems.map((item, index) => (
-              <button key={item.reminder.id} onClick={() => setView('calendar')}>
-                <i className={index === 0 ? 'current' : ''}>
-                  {index === 0 ? <BellRinging size={22} weight="fill" /> : <Clock size={22} weight="duotone" />}
-                </i>
-                <time>{item.next?.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })}</time>
-                <span>{item.reminder.title}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <button className="journey-empty" onClick={() => setEditorKind('care')}>
-            <CheckCircle size={26} weight="duotone" />
-            <span><b>今天沒有待辦</b><small>新增一個照護提醒，行程會出現在這裡。</small></span>
-            <Plus size={20} weight="bold" />
-          </button>
-        )}
-      </section>
-
-      {lowStock && (
-        <button className="stock-alert" onClick={() => setEditorKind('medication')}>
-          <i><Package size={30} weight="duotone" /></i>
-          <span><b>{lowStock.reminder.title} 即將不足</b><small>剩餘 {lowStock.summary.remaining} {lowStock.reminder.medicationStock?.unit}，約 {lowStock.summary.remainingDays} 天</small></span>
-          <CaretRight size={22} weight="bold" />
-        </button>
-      )}
-
-      {todayMedication.length > 0 && (
-        <section className="adherence-card">
-          <div className="adherence-summary">
-            <div><span className="eyebrow">TODAY'S MEDICATION</span><h2>今日服藥完成率</h2><p>{medicationDone} 次完成・{medicationMissed.length} 次待確認・共 {todayMedication.length} 次</p></div>
-            <strong>{medicationRate}<small>%</small></strong>
-          </div>
-          <div className="progress-track"><i style={{ width: `${medicationRate}%` }} /></div>
-          {medicationMissed.length > 0 && (
-            <div className="missed-list">
-              <b>有服藥時間已經過了</b>
-              {medicationMissed.map((item) => (
-                <div key={occurrenceKey(item.reminder.id, item.occurrence)}>
-                  <span><time>{item.occurrence.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })}</time><em>{item.reminder.title} {item.reminder.dose}</em></span>
-                  <span><button onClick={() => void recordOccurrence(item.reminder, item.occurrence, 'late')}>已補吃</button><button className="skip" onClick={() => void recordOccurrence(item.reminder, item.occurrence, 'skipped')}>本次略過</button></span>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      <section className="quick-section">
-        <div className="section-title">
-          <div><span className="eyebrow">QUICK ADD</span><h2>快速新增照護</h2></div>
-          <small>常用項目一鍵建立</small>
-        </div>
-        <div className="quick-grid">
-          {(['medication', 'feeding', 'vet', 'vaccine', 'care'] as ReminderKind[]).map((kind) => (
-            <button key={kind} onClick={() => setEditorKind(kind)}>
-              <i className={kind}><img src={kindIconAssets[kind]} alt="" /></i>
-              <span><b>{kindLabels[kind]}</b><small>建立{kindLabels[kind]}時間與提示</small></span>
-              <em><Plus size={16} weight="bold" /></em>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="schedule-section">
-        <div className="section-title">
-          <div><span className="eyebrow">CARE SCHEDULE</span><h2>{pet?.name || '毛孩'}的照護表</h2></div>
-          <button onClick={() => setEditorKind('medication')}>＋ 新增</button>
-        </div>
-        <div className="filters">
-          {([['today', '今天'], ['upcoming', '接下來'], ['all', '全部']] as const).map(([value, label]) => (
-            <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>
-          ))}
-        </div>
-        <div className="reminder-list">
-          {shown.length ? shown.map((item) => (
-            <article key={item.reminder.id}>
-              <time><b>{item.next?.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })}</b><small>{item.next?.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}</small></time>
-              <i className={item.reminder.kind}><img src={kindIconAssets[item.reminder.kind]} alt="" /></i>
-              <div><small>{kindLabels[item.reminder.kind]}・{repeatLabels[item.reminder.repeat]}</small><b>{item.reminder.title}</b><p>{item.reminder.dose || item.reminder.details || '尚未填寫備註'}</p>{item.reminder.voiceClipId && <em>● 自訂語音</em>}</div>
-              <button className="item-menu" onClick={() => void remove(item.reminder)} aria-label={`刪除${item.reminder.title}`}>×</button>
-            </article>
-          )) : (
-            <div className="list-empty"><i><Clock size={24} /></i><b>{filter === 'today' ? '今天沒有其他提醒' : '這裡還沒有提醒'}</b><p>照護紀錄越清楚，就越不容易漏掉重要時刻。</p></div>
-          )}
-        </div>
-      </section>
-
-      {vetVisits.length > 0 && (
-        <section className="visit-section">
-          <div className="section-title"><div><span className="eyebrow">VET VISITS</span><h2>看診準備與紀錄</h2></div><small>看診前後都不遺漏</small></div>
-          <div className="visit-list">
-            {vetVisits.map((visit) => {
-              const total = (visit.vetVisit?.preparationItems.length || 0) + (visit.vetVisit?.questions.length || 0)
-              const done = [...(visit.vetVisit?.preparationItems || []), ...(visit.vetVisit?.questions || [])].filter((item) => item.completed).length
-              return (
-                <button key={visit.id} onClick={() => setOpenVetVisit(visit)}>
-                  <i><Heartbeat size={22} weight="duotone" /></i>
-                  <span><b>{visit.title}</b><small>{visit.startDate}・{visit.time}・準備 {done}/{total}</small></span>
-                  <em>{visit.vetVisit?.diagnosis ? '已有看診紀錄' : '查看準備'} <CaretRight size={15} /></em>
-                </button>
-              )
-            })}
-          </div>
-        </section>
-      )}
-
-      <section className="data-safety">
-        <div><i><LockKey size={24} weight="duotone" /></i><span><b>單機資料保護</b><small>提醒、看診、回憶照片與錄音都包含在備份中</small></span></div>
-        <div className="backup-actions"><button className="vet-report-action" onClick={exportVetPdf}>獸醫摘要 PDF</button><button onClick={() => void exportData()}>完整備份檔</button><button onClick={() => restoreInput.current?.click()}>恢復資料</button><input ref={restoreInput} type="file" accept="application/json,.json" onChange={(event) => void importData(event.target.files?.[0])} /></div>
-      </section>
-      </>)}
-
-      {nav}
+    <>
+      <CareHomeView
+        pets={pets}
+        pet={pet}
+        activePet={activePet}
+        setActivePet={setActivePet}
+        setEditingPet={setEditingPet}
+        customHomeCover={customHomeCover}
+        nextItem={nextItem}
+        complete={complete}
+        snooze={snooze}
+        setView={setView}
+        setEditorKind={setEditorKind}
+        activeReminders={activeReminders}
+        todayItems={todayItems}
+        medicationDone={medicationDone}
+        medicationMissed={medicationMissed}
+        todayMedication={todayMedication}
+        medicationRate={medicationRate}
+        recordOccurrence={recordOccurrence}
+        filter={filter}
+        setFilter={setFilter}
+        shown={shown}
+        remove={remove}
+        vetVisits={vetVisits}
+        setOpenVetVisit={setOpenVetVisit}
+        exportVetPdf={exportVetPdf}
+        exportData={exportData}
+        restoreInputRef={restoreInput}
+        importData={importData}
+        nav={nav}
+      />
       {editorKind && pet && <ReminderEditor pets={pets} initialKind={editorKind} voices={voices} onClose={() => setEditorKind(null)} onSave={addReminder} />}
       {openVetVisit && <VetVisitPanel reminder={openVetVisit} onClose={() => setOpenVetVisit(null)} onSave={saveVetVisit} />}
       {editingPet && <PetEditor pet={editingPet === 'new' ? undefined : editingPet} onClose={() => setEditingPet(null)} onSave={updatePet} onDelete={removePet} />}
       {toast && <div className="toast">{toast}</div>}
-    </main>
+    </>
   )
 }

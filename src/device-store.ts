@@ -1,18 +1,31 @@
 import type { CareReminder, GrowthRecord, MemoryEntry, Pet, VoiceClip } from './domain'
 
 const DB_NAME = 'maohai-local-care'
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const database = request.result
-      if (!database.objectStoreNames.contains('pets')) database.createObjectStore('pets', { keyPath: 'id' })
-      if (!database.objectStoreNames.contains('reminders')) database.createObjectStore('reminders', { keyPath: 'id' })
-      if (!database.objectStoreNames.contains('voices')) database.createObjectStore('voices', { keyPath: 'id' })
-      if (!database.objectStoreNames.contains('memories')) database.createObjectStore('memories', { keyPath: 'id' })
-      if (!database.objectStoreNames.contains('growth')) database.createObjectStore('growth', { keyPath: 'id' })
+      const oldVersion = event.oldVersion
+
+      if (oldVersion < 1) {
+        if (!database.objectStoreNames.contains('pets')) database.createObjectStore('pets', { keyPath: 'id' })
+        if (!database.objectStoreNames.contains('reminders')) database.createObjectStore('reminders', { keyPath: 'id' })
+        if (!database.objectStoreNames.contains('voices')) database.createObjectStore('voices', { keyPath: 'id' })
+        if (!database.objectStoreNames.contains('memories')) database.createObjectStore('memories', { keyPath: 'id' })
+        if (!database.objectStoreNames.contains('growth')) database.createObjectStore('growth', { keyPath: 'id' })
+      }
+
+      if (oldVersion >= 1 && oldVersion < 4) {
+        // Migration block to upgrade existing v1/v2/v3 schemas to v4 without losing user data.
+        if (!database.objectStoreNames.contains('pets')) database.createObjectStore('pets', { keyPath: 'id' })
+        if (!database.objectStoreNames.contains('reminders')) database.createObjectStore('reminders', { keyPath: 'id' })
+        if (!database.objectStoreNames.contains('voices')) database.createObjectStore('voices', { keyPath: 'id' })
+        if (!database.objectStoreNames.contains('memories')) database.createObjectStore('memories', { keyPath: 'id' })
+        if (!database.objectStoreNames.contains('growth')) database.createObjectStore('growth', { keyPath: 'id' })
+      }
     }
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error)
@@ -70,11 +83,15 @@ export async function loadPets() {
 export const savePet = (pet: Pet) => put('pets', pet)
 export async function deletePetData(petId: string) {
   const [reminders, memories, growth] = await Promise.all([loadReminders(), loadMemories(), loadGrowthRecords()])
+  const petReminders = reminders.filter((item) => item.petId === petId)
+  const voiceIds = petReminders.map((item) => item.voiceClipId).filter((id): id is string => !!id)
+
   await Promise.all([
     remove('pets', petId),
-    ...reminders.filter((item) => item.petId === petId).map((item) => remove('reminders', item.id)),
+    ...petReminders.map((item) => remove('reminders', item.id)),
     ...memories.filter((item) => item.petId === petId).map((item) => remove('memories', item.id)),
     ...growth.filter((item) => item.petId === petId).map((item) => remove('growth', item.id)),
+    ...voiceIds.map((id) => remove('voices', id)),
   ])
 }
 export const loadReminders = () => getAll<CareReminder>('reminders')
@@ -126,6 +143,43 @@ export async function createBackup() {
   }, null, 2)
 }
 
+async function clearAllStores() {
+  const database = await openDatabase()
+  const stores = ['pets', 'reminders', 'voices', 'memories', 'growth']
+  const transaction = database.transaction(stores, 'readwrite')
+  await Promise.all(stores.map((store) => requestResult(transaction.objectStore(store).clear())))
+}
+
+async function snapshotDatabase() {
+  const [pets, reminders, voices, memories, growth] = await Promise.all([
+    getAll<Pet>('pets'),
+    getAll<CareReminder>('reminders'),
+    getAll<VoiceClip>('voices'),
+    getAll<MemoryEntry>('memories'),
+    getAll<GrowthRecord>('growth'),
+  ])
+  return { pets, reminders, voices, memories, growth }
+}
+
+async function restoreFromSnapshot(snapshot: {
+  pets: Pet[]
+  reminders: CareReminder[]
+  voices: VoiceClip[]
+  memories: MemoryEntry[]
+  growth: GrowthRecord[]
+}) {
+  await clearAllStores()
+  const database = await openDatabase()
+  const transaction = database.transaction(['pets', 'reminders', 'voices', 'memories', 'growth'], 'readwrite')
+  await Promise.all([
+    ...snapshot.pets.map((item) => requestResult(transaction.objectStore('pets').put(item))),
+    ...snapshot.reminders.map((item) => requestResult(transaction.objectStore('reminders').put(item))),
+    ...snapshot.voices.map((item) => requestResult(transaction.objectStore('voices').put(item))),
+    ...snapshot.memories.map((item) => requestResult(transaction.objectStore('memories').put(item))),
+    ...snapshot.growth.map((item) => requestResult(transaction.objectStore('growth').put(item))),
+  ])
+}
+
 export async function restoreBackup(text: string) {
   type SerializedPhoto = Omit<MemoryEntry['photos'][number], 'blob'> & { blob: string }
   type SerializedVideo = { id: string; blob: string; mimeType: string; name: string; size: number }
@@ -138,19 +192,40 @@ export async function restoreBackup(text: string) {
     growth?: GrowthRecord[]
   }
   if (data.format !== 'maohai-care-backup' || !Array.isArray(data.reminders)) throw new Error('invalid-backup')
-  await Promise.all([
-    ...(data.pets || []).map((pet) => put('pets', {
+
+  const snapshot = await snapshotDatabase()
+
+  try {
+    await clearAllStores()
+
+    const database = await openDatabase()
+    const transaction = database.transaction(['pets', 'reminders', 'voices', 'memories', 'growth'], 'readwrite')
+
+    const petsToPut = (data.pets || []).map((pet) => ({
       ...pet,
       avatarPhoto: pet.avatarPhoto ? dataUrlToBlob(pet.avatarPhoto) : undefined,
       coverPhoto: pet.coverPhoto ? dataUrlToBlob(pet.coverPhoto) : undefined,
-    })),
-    ...data.reminders.map((reminder) => put('reminders', reminder)),
-    ...(data.voices || []).map((voice) => put('voices', { ...voice, blob: dataUrlToBlob(voice.blob) })),
-    ...(data.memories || []).map((memory) => put('memories', {
+    }))
+    const voicesToPut = (data.voices || []).map((voice) => ({
+      ...voice,
+      blob: dataUrlToBlob(voice.blob),
+    }))
+    const memoriesToPut = (data.memories || []).map((memory) => ({
       ...memory,
       photos: memory.photos.map((photo) => ({ ...photo, blob: dataUrlToBlob(photo.blob) })),
       videos: (memory.videos || []).map((video) => ({ ...video, blob: dataUrlToBlob(video.blob) })),
-    })),
-    ...(data.growth || []).map((record) => put('growth', record)),
-  ])
+    }))
+    const growthToPut = data.growth || []
+
+    await Promise.all([
+      ...petsToPut.map((item) => requestResult(transaction.objectStore('pets').put(item))),
+      ...data.reminders.map((item) => requestResult(transaction.objectStore('reminders').put(item))),
+      ...voicesToPut.map((item) => requestResult(transaction.objectStore('voices').put(item))),
+      ...memoriesToPut.map((item) => requestResult(transaction.objectStore('memories').put(item))),
+      ...growthToPut.map((item) => requestResult(transaction.objectStore('growth').put(item))),
+    ])
+  } catch (error) {
+    await restoreFromSnapshot(snapshot)
+    throw error
+  }
 }

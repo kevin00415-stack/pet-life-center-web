@@ -3,6 +3,17 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import type { CareReminder, Pet } from './domain'
 import { kindLabels, reminderOccurrences } from './domain'
 
+function getSafeNotificationSound(sound: CareReminder['sound']): string | undefined {
+  if (sound === 'system' || sound === 'voice') return undefined
+  // bell.wav and gentle.wav are missing from native resources in current version.
+  // We safely default to undefined to prevent silent notifications until they are bundled.
+  const BUNDLED_SOUNDS: string[] = []
+  if (BUNDLED_SOUNDS.includes(sound)) {
+    return `${sound}.wav`
+  }
+  return undefined // Safe fallback to system default sound
+}
+
 function notificationId(reminderId: string, occurrence: Date, advance: number) {
   const source = `${reminderId}-${occurrence.toISOString()}-${advance}`
   let hash = 0
@@ -54,7 +65,7 @@ export async function scheduleCareReminder(reminder: CareReminder, pet: Pet) {
       title: `${pet.name}・${kindLabels[reminder.kind]}提醒`,
       body: advance ? `${advance >= 60 ? `${advance / 60}小時` : `${advance}分鐘`}後：${reminder.title}` : reminder.title,
       schedule: { at: new Date(occurrence.getTime() - advance * 60_000), allowWhileIdle: true },
-      sound: reminder.sound === 'system' || reminder.sound === 'voice' ? undefined : `${reminder.sound}.wav`,
+      sound: getSafeNotificationSound(reminder.sound),
       extra: { reminderId: reminder.id, occurrence: occurrence.toISOString(), voiceClipId: reminder.voiceClipId },
     }))
   }).filter((notification) => notification.schedule.at > new Date())

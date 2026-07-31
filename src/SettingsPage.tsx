@@ -35,6 +35,12 @@ export default function SettingsPage({ pets, reminders, memories, growthRecords,
     <section className="settings-block"><div className="settings-title"><div><span className="eyebrow">SHARE WITH VET</span><h2>獸醫摘要 PDF</h2></div></div><p className="backup-explain">整理目前毛孩的基本資料、體重、服藥、看診、疫苗與健康時間軸；不包含照片、影片或錄音。</p><button className="vet-report-settings" onClick={onExportVetReport}>產生並分享 PDF</button><small className="backup-warning">請在手機列印畫面選擇「儲存為 PDF」或分享給醫院；內容是飼主紀錄，不代表診斷。</small></section>
     <section className="settings-block"><div className="settings-title"><div><span className="eyebrow">BACKUP & RESTORE</span><h2>完整備份與恢復</h2></div></div><p className="backup-explain">完整備份是 App 專用 JSON 資料檔，包含毛孩檔案、照片、提醒、看診、成長與錄音；它不是一般文件，請用下方「從備份恢復」開啟。</p><div className="settings-backup"><button onClick={() => void onExport()}>下載完整備份檔</button><button onClick={() => restoreInput.current?.click()}>從備份恢復</button><input ref={restoreInput} type="file" accept="application/json,.json" onChange={(event) => void onImport(event.target.files?.[0])} /></div><small className="backup-warning">不要把完整備份直接傳給醫院，因為其中可能含照片、錄音及其他敏感資料。</small></section>
     <section className="settings-block acceptance-block"><div className="settings-title"><div><span className="eyebrow">DEVICE ACCEPTANCE</span><h2>手機實機驗收</h2></div><strong>{acceptedCount}/{acceptanceItems.length}<small>已完成</small></strong></div><div className="acceptance-progress"><i style={{ width: `${acceptedCount / acceptanceItems.length * 100}%` }} /></div><div className="acceptance-list">{acceptanceItems.map(([id, label]) => <label key={id} className={acceptance[id] ? 'checked' : ''}><input type="checkbox" checked={Boolean(acceptance[id])} onChange={() => toggleAcceptance(id)} /><span>{label}</span></label>)}</div><aside><b>目前限制</b><p>自訂錄音已可錄製與 App 內試聽；App 關閉或手機鎖定時直接播放該錄音，仍待原生橋接與實機驗證。背景通知目前使用手機系統聲音。</p></aside></section>
-    <footer className="settings-footer"><b>毛孩生活中心 v0.21.0</b><span>離線陪伴・上線服務</span></footer>
+    <footer className="settings-footer" style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '16px 0', borderTop: '1px solid #eee', fontSize: '11px', color: '#888', alignItems: 'center' }}>
+      <b>毛孩生活中心 v0.22.0 (Phase 0 Test Build)</b>
+      <span>分支: jules-3003564570178472060-d297ec33</span>
+      <span>Commit: d517842564ac13ebf3d2fe3ff7aedc3043327233</span>
+      <span>Build 時間: 2026-07-29 13:22</span>
+      <span>離線陪伴・上線服務</span>
+    </footer>
   </section>
 }

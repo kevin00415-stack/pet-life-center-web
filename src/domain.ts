@@ -13,6 +13,12 @@ export type Pet = {
   coverPhoto?: Blob
   coverMimeType?: string
   coverPosition?: { x: number; y: number; zoom: number }
+  microchipNumber?: string
+  microchipStatus?: string
+  lastScanDate?: string
+  emergencyContact?: string
+  vetHospital?: string
+  medicalNotes?: string
 }
 export type VoiceClip = { id: string; name: string; blob: Blob; mimeType: string; durationMs: number; createdAt: number; source?: 'recording' | 'file' }
 export type OccurrenceStatus = 'completed' | 'late' | 'skipped'
