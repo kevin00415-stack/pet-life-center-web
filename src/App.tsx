@@ -36,6 +36,7 @@ import { usePets } from './hooks/usePets'
 import { useAlarmController } from './hooks/useAlarmController'
 import { CareHomeView } from './components/CareHomeView'
 import SeniorCareView from './components/SeniorCareView'
+import EventCenterView from './components/EventCenterView'
 
 export default function App() {
   const {
@@ -400,6 +401,17 @@ export default function App() {
           pet={pet}
           todayMedication={todayMedication}
           recordOccurrence={recordOccurrence}
+          onBack={() => setView('care')}
+        />
+        {nav}
+      </main>
+    )
+  }
+  if (view === 'event') {
+    return (
+      <main className="app-shell">
+        <EventCenterView
+          pet={pet}
           onBack={() => setView('care')}
         />
         {nav}

@@ -40,7 +40,7 @@ interface CareHomeViewProps {
   nextItem: { reminder: CareReminder; next?: Date } | undefined
   complete: (item: { reminder: CareReminder; next?: Date }) => Promise<void>
   snooze: (reminder: CareReminder) => Promise<void>
-  setView: (view: 'care' | 'health' | 'memories' | 'calendar' | 'settings' | 'relax' | 'community' | 'senior') => void
+  setView: (view: 'care' | 'health' | 'memories' | 'calendar' | 'settings' | 'relax' | 'community' | 'senior' | 'event') => void
   setEditorKind: (kind: ReminderKind | null) => void
   activeReminders: { reminder: CareReminder; next?: Date }[]
   todayItems: { reminder: CareReminder; next?: Date }[]
@@ -320,6 +320,15 @@ export function CareHomeView({
           </div>
           <b style={{ color: '#8c6020' }}>高齡照護中心</b>
           <small>每日生理觀察與早期異變警示</small>
+        </button>
+
+        <button className="event-action upgraded-card" onClick={() => setView('event')} style={{ background: '#fdf2f0', border: '1.5px solid #f9dedb' }}>
+          <div className="feature-card-header">
+            <i><img src={reminderFeatureIcon} alt="" style={{ filter: 'hue-rotate(320deg)' }} /></i>
+            <span className="card-badge" style={{ background: '#e05a47', color: '#fff' }}>守護</span>
+          </div>
+          <b style={{ color: '#6d1d11' }}>異常事件記錄</b>
+          <small>快速錄像拍下抽搐、嘔吐等突發異變</small>
         </button>
       </section>
 

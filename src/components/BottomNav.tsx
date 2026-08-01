@@ -1,7 +1,7 @@
 import { House, Images, Users, Heartbeat, BellRinging } from '@phosphor-icons/react'
 import { useTranslation } from '../i18n/translations'
 
-export type View = 'care' | 'health' | 'memories' | 'calendar' | 'settings' | 'relax' | 'community' | 'senior'
+export type View = 'care' | 'health' | 'memories' | 'calendar' | 'settings' | 'relax' | 'community' | 'senior' | 'event'
 
 interface BottomNavProps {
   active: View

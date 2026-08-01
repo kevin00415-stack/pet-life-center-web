@@ -186,6 +186,43 @@ function dateFromOccurrenceKey(key: string) {
 
 export function buildHealthTimeline(reminders: CareReminder[], petId: string, now = new Date()) {
   const events: TimelineEvent[] = []
+
+  // Automatically read and merge abnormal events from localStorage to inject into Timeline
+  if (typeof localStorage !== 'undefined') {
+    const saved = localStorage.getItem(`maohai-abnormal-events-${petId}`)
+    if (saved) {
+      try {
+        const eventsList = JSON.parse(saved)
+        if (Array.isArray(eventsList)) {
+          const categoryLabels: Record<string, string> = {
+            seizure: '癲癇/抽搐 (Seizure)',
+            vomiting: '嘔吐/噁心 (Vomiting)',
+            diarrhea: '拉肚子/腹瀉 (Diarrhea)',
+            injury: '外傷/受傷 (Injury)',
+            walking: '走路異常 (Abnormal Walking)',
+            breathing: '呼吸急促/困難 (Breathing)',
+            appetite: '食慾不振 (Appetite Loss)',
+            other: '其他異常 (Other)',
+          }
+
+          eventsList.forEach((ev: any) => {
+            events.push({
+              id: ev.id || `abnormal-${ev.timestamp}`,
+              petId,
+              kind: 'care',
+              title: `🚨 異常：${categoryLabels[ev.category] || '其他異常'}`,
+              details: ev.notes || '無備註說明',
+              date: new Date(ev.timestamp),
+              status: 'recorded',
+            })
+          })
+        }
+      } catch (e) {
+        console.error('Failed to parse abnormal events in timeline builder', e)
+      }
+    }
+  }
+
   reminders.filter((reminder) => reminder.petId === petId).forEach((reminder) => {
     const recordedKeys = new Set<string>()
     reminder.occurrenceRecords?.forEach((record) => {
