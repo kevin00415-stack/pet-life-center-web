@@ -111,9 +111,15 @@ export async function loadPets() {
 }
 export const savePet = (pet: Pet) => put('pets', pet)
 export async function deletePetData(petId: string) {
-  const [reminders, memories, growth] = await Promise.all([loadReminders(), loadMemories(), loadGrowthRecords()])
+  const [reminders, memories, growth, media] = await Promise.all([
+    loadReminders(),
+    loadMemories(),
+    loadGrowthRecords(),
+    loadAllMedia(),
+  ])
   const petReminders = reminders.filter((item) => item.petId === petId)
   const voiceIds = petReminders.map((item) => item.voiceClipId).filter((id): id is string => !!id)
+  const petMedia = media.filter((item) => item.metadata.petId === petId)
 
   await Promise.all([
     remove('pets', petId),
@@ -121,6 +127,7 @@ export async function deletePetData(petId: string) {
     ...memories.filter((item) => item.petId === petId).map((item) => remove('memories', item.id)),
     ...growth.filter((item) => item.petId === petId).map((item) => remove('growth', item.id)),
     ...voiceIds.map((id) => remove('voices', id)),
+    ...petMedia.map((item) => remove('media', item.id)),
   ])
 }
 export const loadReminders = () => getAll<CareReminder>('reminders')
