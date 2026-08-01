@@ -18,6 +18,7 @@ const mockStores: Record<string, Map<any, any>> = {
   voices: new Map(),
   memories: new Map(),
   growth: new Map(),
+  media: new Map(),
 }
 
 const mockIDBRequest = (result: any) => {
@@ -54,7 +55,7 @@ const mockIDBTransaction = () => ({
 
 const mockIDBDatabase = {
   objectStoreNames: {
-    contains: (name: string) => ['pets', 'reminders', 'voices', 'memories', 'growth'].includes(name),
+    contains: (name: string) => ['pets', 'reminders', 'voices', 'memories', 'growth', 'media'].includes(name),
   },
   transaction: () => mockIDBTransaction(),
 }

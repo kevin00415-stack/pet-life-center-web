@@ -1,7 +1,28 @@
 import type { CareReminder, GrowthRecord, MemoryEntry, Pet, VoiceClip } from './domain'
 
 const DB_NAME = 'maohai-local-care'
-const DB_VERSION = 4
+const DB_VERSION = 5
+
+export interface MediaStorageItem {
+  id: string
+  metadata: {
+    id: string
+    petId: string
+    createdAt: number
+    type: 'photo' | 'video'
+    mimeType: string
+    fileName: string
+    fileSize: number
+    duration?: number
+    thumbnailId?: string
+    source: 'camera' | 'gallery' | 'file'
+    context: string
+    entityType: string
+    entityId: string
+    tags?: string[]
+  }
+  blob: Blob
+}
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -10,7 +31,8 @@ function openDatabase(): Promise<IDBDatabase> {
       const database = request.result
       const oldVersion = event.oldVersion
 
-      if (oldVersion < 1) {
+      // Creation helper for all previous version stores
+      const ensureV1Stores = () => {
         if (!database.objectStoreNames.contains('pets')) database.createObjectStore('pets', { keyPath: 'id' })
         if (!database.objectStoreNames.contains('reminders')) database.createObjectStore('reminders', { keyPath: 'id' })
         if (!database.objectStoreNames.contains('voices')) database.createObjectStore('voices', { keyPath: 'id' })
@@ -18,13 +40,20 @@ function openDatabase(): Promise<IDBDatabase> {
         if (!database.objectStoreNames.contains('growth')) database.createObjectStore('growth', { keyPath: 'id' })
       }
 
+      if (oldVersion < 1) {
+        ensureV1Stores()
+      }
+
       if (oldVersion >= 1 && oldVersion < 4) {
-        // Migration block to upgrade existing v1/v2/v3 schemas to v4 without losing user data.
-        if (!database.objectStoreNames.contains('pets')) database.createObjectStore('pets', { keyPath: 'id' })
-        if (!database.objectStoreNames.contains('reminders')) database.createObjectStore('reminders', { keyPath: 'id' })
-        if (!database.objectStoreNames.contains('voices')) database.createObjectStore('voices', { keyPath: 'id' })
-        if (!database.objectStoreNames.contains('memories')) database.createObjectStore('memories', { keyPath: 'id' })
-        if (!database.objectStoreNames.contains('growth')) database.createObjectStore('growth', { keyPath: 'id' })
+        ensureV1Stores()
+      }
+
+      // v5 Upgrade: Create 'media' object store for binary Blobs and metadata
+      if (oldVersion < 5) {
+        ensureV1Stores()
+        if (!database.objectStoreNames.contains('media')) {
+          database.createObjectStore('media', { keyPath: 'id' })
+        }
       }
     }
     request.onsuccess = () => resolve(request.result)
@@ -106,6 +135,11 @@ export const loadGrowthRecords = () => getAll<GrowthRecord>('growth')
 export const saveGrowthRecord = (record: GrowthRecord) => put('growth', record)
 export const deleteGrowthRecord = (id: string) => remove('growth', id)
 
+// Shared Media Store Actions
+export const loadAllMedia = () => getAll<MediaStorageItem>('media')
+export const saveMediaItem = (item: MediaStorageItem) => put('media', item)
+export const deleteMediaItem = (id: string) => remove('media', id)
+
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -145,20 +179,21 @@ export async function createBackup() {
 
 async function clearAllStores() {
   const database = await openDatabase()
-  const stores = ['pets', 'reminders', 'voices', 'memories', 'growth']
+  const stores = ['pets', 'reminders', 'voices', 'memories', 'growth', 'media']
   const transaction = database.transaction(stores, 'readwrite')
   await Promise.all(stores.map((store) => requestResult(transaction.objectStore(store).clear())))
 }
 
 async function snapshotDatabase() {
-  const [pets, reminders, voices, memories, growth] = await Promise.all([
+  const [pets, reminders, voices, memories, growth, media] = await Promise.all([
     getAll<Pet>('pets'),
     getAll<CareReminder>('reminders'),
     getAll<VoiceClip>('voices'),
     getAll<MemoryEntry>('memories'),
     getAll<GrowthRecord>('growth'),
+    getAll<MediaStorageItem>('media'),
   ])
-  return { pets, reminders, voices, memories, growth }
+  return { pets, reminders, voices, memories, growth, media }
 }
 
 async function restoreFromSnapshot(snapshot: {
@@ -167,16 +202,18 @@ async function restoreFromSnapshot(snapshot: {
   voices: VoiceClip[]
   memories: MemoryEntry[]
   growth: GrowthRecord[]
+  media: MediaStorageItem[]
 }) {
   await clearAllStores()
   const database = await openDatabase()
-  const transaction = database.transaction(['pets', 'reminders', 'voices', 'memories', 'growth'], 'readwrite')
+  const transaction = database.transaction(['pets', 'reminders', 'voices', 'memories', 'growth', 'media'], 'readwrite')
   await Promise.all([
     ...snapshot.pets.map((item) => requestResult(transaction.objectStore('pets').put(item))),
     ...snapshot.reminders.map((item) => requestResult(transaction.objectStore('reminders').put(item))),
     ...snapshot.voices.map((item) => requestResult(transaction.objectStore('voices').put(item))),
     ...snapshot.memories.map((item) => requestResult(transaction.objectStore('memories').put(item))),
     ...snapshot.growth.map((item) => requestResult(transaction.objectStore('growth').put(item))),
+    ...snapshot.media.map((item) => requestResult(transaction.objectStore('media').put(item))),
   ])
 }
 

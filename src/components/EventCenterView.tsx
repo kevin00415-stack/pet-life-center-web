@@ -1,10 +1,19 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   ArrowLeft,
   Camera,
   VideoCamera,
+  Trash,
+  Image,
 } from '@phosphor-icons/react'
 import type { Pet } from '../domain'
+import { sharedMediaService } from '../services/SharedMediaService'
+import {
+  loadAllMedia,
+  saveMediaItem,
+  deleteMediaItem,
+  type MediaStorageItem,
+} from '../device-store'
 
 interface EventCenterViewProps {
   pet?: Pet
@@ -19,6 +28,14 @@ interface AbnormalEvent {
   hasPhoto: boolean
   hasVideo: boolean
   timestamp: number
+  mediaIds?: string[]
+}
+
+interface PendingMedia {
+  id: string
+  file: File
+  type: 'photo' | 'video'
+  previewUrl: string
 }
 
 const CATEGORIES = [
@@ -35,9 +52,14 @@ const CATEGORIES = [
 export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
   const [category, setCategory] = useState<AbnormalEvent['category']>('other')
   const [notes, setNotes] = useState('')
-  const [hasPhoto, setHasPhoto] = useState(false)
-  const [hasVideo, setHasVideo] = useState(false)
   const [history, setHistory] = useState<AbnormalEvent[]>([])
+  const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([])
+  const [validationError, setValidationError] = useState('')
+  const [savedMedia, setSavedMedia] = useState<Record<string, { blob: Blob; url: string }>>({})
+
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
 
   const storageKey = pet ? `maohai-abnormal-events-${pet.id}` : ''
 
@@ -56,34 +78,192 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
     }
   }, [storageKey])
 
-  const handleSave = () => {
+  // Load saved media items from IndexedDB
+  useEffect(() => {
+    let activeUrls: string[] = []
+    const loadMediaData = async () => {
+      try {
+        const allMedia = await loadAllMedia()
+        const petMedia = allMedia.filter((item) => item.metadata.petId === pet?.id)
+
+        const mediaMap: Record<string, { blob: Blob; url: string }> = {}
+        petMedia.forEach((item) => {
+          const url = URL.createObjectURL(item.blob)
+          activeUrls.push(url)
+          mediaMap[item.id] = {
+            blob: item.blob,
+            url,
+          }
+        })
+        setSavedMedia(mediaMap)
+      } catch (err) {
+        console.error('Error loading media database', err)
+      }
+    }
+
+    if (pet?.id) {
+      loadMediaData()
+    }
+
+    return () => {
+      activeUrls.forEach((url) => URL.revokeObjectURL(url))
+    }
+  }, [pet?.id, history])
+
+  // Cleanup pending preview URLs on unmount
+  useEffect(() => {
+    return () => {
+      pendingMedia.forEach((item) => {
+        sharedMediaService.revokePreviewUrl(item.previewUrl)
+      })
+    }
+  }, [pendingMedia])
+
+  const handleMediaFileChange = (e: React.ChangeEvent<HTMLInputElement>, preferredType?: 'photo' | 'video') => {
+    setValidationError('')
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const file = files[0]
+    const validation = sharedMediaService.validateMedia(file)
+    if (!validation.valid) {
+      setValidationError(validation.error || '檔案驗證失敗。')
+      return
+    }
+
+    const determinedType = preferredType || (file.type.startsWith('image/') ? 'photo' : 'video')
+    const previewUrl = sharedMediaService.createPreviewUrl(file)
+
+    const newPending: PendingMedia = {
+      id: `pending-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      file,
+      type: determinedType,
+      previewUrl,
+    }
+
+    setPendingMedia((prev) => [...prev, newPending])
+
+    // Clear the input value so the same file can be selected again
+    e.target.value = ''
+  }
+
+  const handleRemovePending = (id: string, url: string) => {
+    sharedMediaService.revokePreviewUrl(url)
+    setPendingMedia((prev) => prev.filter((item) => item.id !== id))
+  }
+
+  const handleSave = async () => {
     if (!storageKey || !pet) return
 
+    const finalMediaIds: string[] = []
+    const hasPhoto = pendingMedia.some((m) => m.type === 'photo')
+    const hasVideo = pendingMedia.some((m) => m.type === 'video')
+
+    const newEventId = 'abnormal-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9)
+
+    // Save each pending media item to IndexedDB
+    for (const pending of pendingMedia) {
+      const mediaId = `media-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      finalMediaIds.push(mediaId)
+
+      const metadata = sharedMediaService.createMetadata({
+        id: mediaId,
+        petId: pet.id,
+        type: pending.type,
+        mimeType: pending.file.type,
+        fileName: pending.file.name,
+        fileSize: pending.file.size,
+        source: 'file', // Can be 'camera' or 'gallery' in full native integration
+        context: 'abnormal-event',
+        entityType: 'abnormal-event',
+        entityId: newEventId,
+      })
+
+      const storageItem: MediaStorageItem = {
+        id: mediaId,
+        metadata,
+        blob: pending.file,
+      }
+
+      try {
+        await saveMediaItem(storageItem)
+      } catch (err) {
+        console.error('Failed to save media item to IndexedDB', err)
+        setValidationError('儲存媒體檔案至資料庫時發生錯誤。')
+        return
+      }
+    }
+
     const newEvent: AbnormalEvent = {
-      id: 'abnormal-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+      id: newEventId,
       petId: pet.id,
       category,
       notes: notes.trim() || '未填寫詳細說明',
       hasPhoto,
       hasVideo,
       timestamp: Date.now(),
+      mediaIds: finalMediaIds,
     }
 
     const updatedHistory = [newEvent, ...history]
     setHistory(updatedHistory)
     localStorage.setItem(storageKey, JSON.stringify(updatedHistory))
 
-    // Clear form inputs
+    // Clear inputs and pending states
     setCategory('other')
     setNotes('')
-    setHasPhoto(false)
-    setHasVideo(false)
+    setPendingMedia([])
+    setValidationError('')
 
-    alert('⚠️ 異常事件已成功記錄並自動同步至健康時間軸！')
+    alert('⚠️ 異常事件與現場證據已成功記錄，並自動同步至健康時間軸！')
+  }
+
+  const handleDeleteEvent = async (event: AbnormalEvent) => {
+    if (!storageKey || !window.confirm('確定要刪除此筆異常紀錄與其相關現場證據嗎？')) return
+
+    // Cascade delete any linked media from IndexedDB
+    if (event.mediaIds && event.mediaIds.length > 0) {
+      for (const mediaId of event.mediaIds) {
+        try {
+          await deleteMediaItem(mediaId)
+        } catch (err) {
+          console.error(`Failed to delete media item ${mediaId}`, err)
+        }
+      }
+    }
+
+    const updatedHistory = history.filter((item) => item.id !== event.id)
+    setHistory(updatedHistory)
+    localStorage.setItem(storageKey, JSON.stringify(updatedHistory))
   }
 
   return (
     <div className="event-center-container" style={{ padding: '16px', paddingBottom: '90px', background: '#fbf8f3', minHeight: '100vh', textAlign: 'left' }}>
+      {/* Hidden native HTML5 file inputs for zero-overhead direct media capture */}
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        ref={cameraInputRef}
+        style={{ display: 'none' }}
+        onChange={(e) => handleMediaFileChange(e, 'photo')}
+      />
+      <input
+        type="file"
+        accept="video/*"
+        capture="environment"
+        ref={videoInputRef}
+        style={{ display: 'none' }}
+        onChange={(e) => handleMediaFileChange(e, 'video')}
+      />
+      <input
+        type="file"
+        accept="image/*,video/*"
+        ref={galleryInputRef}
+        style={{ display: 'none' }}
+        onChange={(e) => handleMediaFileChange(e)}
+      />
+
       <header style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
         <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }} aria-label="返回今日看板">
           <ArrowLeft size={24} color="#173f3b" />
@@ -116,6 +296,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
               <button
                 key={item.key}
                 onClick={() => setCategory(item.key)}
+                className={`${item.key}_btn`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -141,57 +322,125 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
         </div>
       </section>
 
-      {/* Media Recording Placeholders (Requirement 4 & 5) */}
+      {/* Media Capture Section */}
       <section style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '17px', color: '#173f3b', marginBottom: '14px', borderLeft: '4px solid #e05a47', paddingLeft: '8px', fontWeight: 'bold' }}>
-          現場證據保留 (Media Upload - Placeholder)
+          現場證據保留 (Real Media Capture)
         </h2>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
           {/* Photo Box */}
           <button
-            onClick={() => setHasPhoto(!hasPhoto)}
+            onClick={() => cameraInputRef.current?.click()}
             style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
-              padding: '20px 12px',
-              borderRadius: '16px',
+              gap: '6px',
+              padding: '14px 8px',
+              borderRadius: '12px',
               border: '1.5px dashed #dce7e4',
-              background: hasPhoto ? '#eef5f3' : '#fff',
-              color: hasPhoto ? '#173f3b' : '#5e746f',
+              background: '#fff',
+              color: '#173f3b',
               cursor: 'pointer',
             }}
           >
-            <Camera size={28} weight={hasPhoto ? 'fill' : 'regular'} />
-            <b style={{ fontSize: '13px' }}>{hasPhoto ? '✅ 已附加模擬照片' : '📷 拍下現場照片'}</b>
-            <span style={{ fontSize: '10px', opacity: 0.8 }}>Capacitor 鏡頭對接 (預留)</span>
+            <Camera size={24} color="#e05a47" />
+            <b style={{ fontSize: '12px' }}>立即拍照</b>
           </button>
 
           {/* Video Box */}
           <button
-            onClick={() => setHasVideo(!hasVideo)}
+            onClick={() => videoInputRef.current?.click()}
             style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
-              padding: '20px 12px',
-              borderRadius: '16px',
+              gap: '6px',
+              padding: '14px 8px',
+              borderRadius: '12px',
               border: '1.5px dashed #dce7e4',
-              background: hasVideo ? '#eef5f3' : '#fff',
-              color: hasVideo ? '#173f3b' : '#5e746f',
+              background: '#fff',
+              color: '#173f3b',
               cursor: 'pointer',
             }}
           >
-            <VideoCamera size={28} weight={hasVideo ? 'fill' : 'regular'} />
-            <b style={{ fontSize: '13px' }}>{hasVideo ? '✅ 已附加模擬影片' : '🎥 錄製現場影片'}</b>
-            <span style={{ fontSize: '10px', opacity: 0.8 }}>Capacitor 錄影對接 (預留)</span>
+            <VideoCamera size={24} color="#e05a47" />
+            <b style={{ fontSize: '12px' }}>立即錄影</b>
+          </button>
+
+          {/* Gallery Box */}
+          <button
+            onClick={() => galleryInputRef.current?.click()}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              padding: '14px 8px',
+              borderRadius: '12px',
+              border: '1.5px dashed #dce7e4',
+              background: '#fff',
+              color: '#173f3b',
+              cursor: 'pointer',
+            }}
+          >
+            <Image size={24} color="#e05a47" />
+            <b style={{ fontSize: '12px' }}>相簿選擇</b>
           </button>
         </div>
+
+        {/* Validation Errors */}
+        {validationError && (
+          <p style={{ margin: '10px 0 0 0', color: '#e05a47', fontSize: '13px', fontWeight: 'bold' }}>
+            ⚠️ {validationError}
+          </p>
+        )}
+
+        {/* Previews of captured unsaved files */}
+        {pendingMedia.length > 0 && (
+          <div style={{ marginTop: '14px' }}>
+            <h3 style={{ fontSize: '13px', color: '#5e746f', marginBottom: '8px' }}>待儲存證據預覽：</h3>
+            <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '8px' }}>
+              {pendingMedia.map((media) => (
+                <div key={media.id} style={{ position: 'relative', width: '90px', height: '90px', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', border: '1px solid #dce7e4' }}>
+                  {media.type === 'photo' ? (
+                    <img src={media.previewUrl} alt="Pending Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <video src={media.previewUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted playsInline />
+                  )}
+                  <button
+                    onClick={() => handleRemovePending(media.id, media.previewUrl)}
+                    style={{
+                      position: 'absolute',
+                      top: '4px',
+                      right: '4px',
+                      background: 'rgba(0,0,0,0.6)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '20px',
+                      height: '20px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    ×
+                  </button>
+                  <div style={{ position: 'absolute', bottom: '0', left: '0', right: '0', background: 'rgba(0,0,0,0.4)', color: '#fff', fontSize: '9px', textAlign: 'center', padding: '2px 0' }}>
+                    {media.type === 'photo' ? '照片' : '影片'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Quick Notes Section */}
@@ -278,21 +527,44 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
                     <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#173f3b' }}>
                       {matchedCat?.icon} {matchedCat?.label.split(' ')[0]}
                     </span>
-                    <span style={{ fontSize: '12px', color: '#5e746f' }}>
-                      🕒 {dateStr}
-                    </span>
+                    <button
+                      onClick={() => handleDeleteEvent(ev)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: '#e05a47', fontSize: '13px' }}
+                    >
+                      <Trash size={16} /> 刪除紀錄
+                    </button>
                   </div>
 
                   <p style={{ margin: 0, fontSize: '14px', color: '#263b37', lineHeight: '1.5', background: '#fdfaf5', padding: '10px', borderRadius: '10px', borderLeft: '3px solid #e05a47' }}>
                     {ev.notes}
                   </p>
 
-                  {(ev.hasPhoto || ev.hasVideo) && (
-                    <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
-                      {ev.hasPhoto && <span style={{ fontSize: '11px', background: '#eef5f3', color: '#173f3b', padding: '3px 8px', borderRadius: '6px' }}>📷 模擬照片附屬</span>}
-                      {ev.hasVideo && <span style={{ fontSize: '11px', background: '#eef5f3', color: '#173f3b', padding: '3px 8px', borderRadius: '6px' }}>🎥 模擬影片附屬</span>}
+                  {/* Real Saved media player/viewer inside History items */}
+                  {ev.mediaIds && ev.mediaIds.length > 0 && (
+                    <div style={{ marginTop: '12px', display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
+                      {ev.mediaIds.map((mediaId) => {
+                        const media = savedMedia[mediaId]
+                        if (!media) return null
+                        const isPhoto = media.blob.type.startsWith('image/')
+                        return (
+                          <div key={mediaId} style={{ position: 'relative', width: '120px', height: '120px', borderRadius: '10px', overflow: 'hidden', border: '1px solid #dce7e4', flexShrink: 0 }}>
+                            {isPhoto ? (
+                              <img src={media.url} alt="Evidence photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => window.open(media.url, '_blank')} />
+                            ) : (
+                              <video src={media.url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            )}
+                            <div style={{ position: 'absolute', bottom: '0', left: '0', right: '0', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '9px', textAlign: 'center', padding: '3px 0' }}>
+                              {isPhoto ? '📷 現場照片' : '🎥 現場影片'}
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
+
+                  <div style={{ marginTop: '10px', fontSize: '11px', color: '#5e746f' }}>
+                    🕒 紀錄時間: {dateStr}
+                  </div>
                 </article>
               )
             })}

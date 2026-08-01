@@ -206,12 +206,19 @@ export function buildHealthTimeline(reminders: CareReminder[], petId: string, no
           }
 
           eventsList.forEach((ev: any) => {
+            let details = ev.notes || '無備註說明'
+            if (ev.hasPhoto || ev.hasVideo) {
+              const evidenceParts: string[] = []
+              if (ev.hasPhoto) evidenceParts.push('📷 照片證據')
+              if (ev.hasVideo) evidenceParts.push('🎥 影片證據')
+              details += `\n(已附加: ${evidenceParts.join('、')})`
+            }
             events.push({
               id: ev.id || `abnormal-${ev.timestamp}`,
               petId,
               kind: 'care',
               title: `🚨 異常：${categoryLabels[ev.category] || '其他異常'}`,
-              details: ev.notes || '無備註說明',
+              details,
               date: new Date(ev.timestamp),
               status: 'recorded',
             })

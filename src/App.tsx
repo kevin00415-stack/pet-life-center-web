@@ -76,6 +76,7 @@ export default function App() {
     if (hash === '#/settings') return 'settings'
     if (hash === '#/relax') return 'relax'
     if (hash === '#/senior') return 'senior'
+    if (hash === '#/event') return 'event'
     return 'care'
   })
 
@@ -113,6 +114,8 @@ export default function App() {
         setView('relax')
       } else if (hash === '#/senior') {
         setView('senior')
+      } else if (hash === '#/event') {
+        setView('event')
       } else {
         setView('care')
       }
