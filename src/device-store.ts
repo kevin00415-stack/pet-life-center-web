@@ -156,7 +156,14 @@ function dataUrlToBlob(dataUrl: string) {
 }
 
 export async function createBackup() {
-  const [pets, reminders, voices, memories, growth] = await Promise.all([loadPets(), loadReminders(), loadVoices(), loadMemories(), loadGrowthRecords()])
+  const [pets, reminders, voices, memories, growth, media] = await Promise.all([
+    loadPets(),
+    loadReminders(),
+    loadVoices(),
+    loadMemories(),
+    loadGrowthRecords(),
+    loadAllMedia(),
+  ])
   return JSON.stringify({
     format: 'maohai-care-backup',
     version: 5,
@@ -174,6 +181,11 @@ export async function createBackup() {
       videos: await Promise.all((memory.videos || []).map(async (video) => ({ ...video, blob: await blobToDataUrl(video.blob) }))),
     }))),
     growth,
+    media: await Promise.all(media.map(async (item) => ({
+      id: item.id,
+      metadata: item.metadata,
+      blob: await blobToDataUrl(item.blob),
+    }))),
   }, null, 2)
 }
 
@@ -227,6 +239,7 @@ export async function restoreBackup(text: string) {
     voices: Array<Omit<VoiceClip, 'blob'> & { blob: string }>
     memories?: Array<Omit<MemoryEntry, 'photos' | 'videos'> & { photos: SerializedPhoto[]; videos?: SerializedVideo[] }>
     growth?: GrowthRecord[]
+    media?: Array<{ id: string; metadata: any; blob: string }>
   }
   if (data.format !== 'maohai-care-backup' || !Array.isArray(data.reminders)) throw new Error('invalid-backup')
 
@@ -236,7 +249,7 @@ export async function restoreBackup(text: string) {
     await clearAllStores()
 
     const database = await openDatabase()
-    const transaction = database.transaction(['pets', 'reminders', 'voices', 'memories', 'growth'], 'readwrite')
+    const transaction = database.transaction(['pets', 'reminders', 'voices', 'memories', 'growth', 'media'], 'readwrite')
 
     const petsToPut = (data.pets || []).map((pet) => ({
       ...pet,
@@ -253,6 +266,11 @@ export async function restoreBackup(text: string) {
       videos: (memory.videos || []).map((video) => ({ ...video, blob: dataUrlToBlob(video.blob) })),
     }))
     const growthToPut = data.growth || []
+    const mediaToPut = (data.media || []).map((item) => ({
+      id: item.id,
+      metadata: item.metadata,
+      blob: dataUrlToBlob(item.blob),
+    }))
 
     await Promise.all([
       ...petsToPut.map((item) => requestResult(transaction.objectStore('pets').put(item))),
@@ -260,6 +278,7 @@ export async function restoreBackup(text: string) {
       ...voicesToPut.map((item) => requestResult(transaction.objectStore('voices').put(item))),
       ...memoriesToPut.map((item) => requestResult(transaction.objectStore('memories').put(item))),
       ...growthToPut.map((item) => requestResult(transaction.objectStore('growth').put(item))),
+      ...mediaToPut.map((item) => requestResult(transaction.objectStore('media').put(item))),
     ])
   } catch (error) {
     await restoreFromSnapshot(snapshot)
