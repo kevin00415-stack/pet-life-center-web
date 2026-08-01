@@ -35,6 +35,7 @@ import { BottomNav, type View } from './components/BottomNav'
 import { usePets } from './hooks/usePets'
 import { useAlarmController } from './hooks/useAlarmController'
 import { CareHomeView } from './components/CareHomeView'
+import SeniorCareView from './components/SeniorCareView'
 
 export default function App() {
   const {
@@ -73,6 +74,7 @@ export default function App() {
     if (hash === '#/calendar') return 'calendar'
     if (hash === '#/settings') return 'settings'
     if (hash === '#/relax') return 'relax'
+    if (hash === '#/senior') return 'senior'
     return 'care'
   })
 
@@ -108,6 +110,8 @@ export default function App() {
         setView('settings')
       } else if (hash === '#/relax') {
         setView('relax')
+      } else if (hash === '#/senior') {
+        setView('senior')
       } else {
         setView('care')
       }
@@ -385,6 +389,19 @@ export default function App() {
     return (
       <main className="app-shell">
         <CommunityHome onBack={() => setView('care')} />
+        {nav}
+      </main>
+    )
+  }
+  if (view === 'senior') {
+    return (
+      <main className="app-shell">
+        <SeniorCareView
+          pet={pet}
+          todayMedication={todayMedication}
+          recordOccurrence={recordOccurrence}
+          onBack={() => setView('care')}
+        />
         {nav}
       </main>
     )

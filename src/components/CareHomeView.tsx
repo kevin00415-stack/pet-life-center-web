@@ -28,6 +28,7 @@ import healthFeatureIcon from '../assets/feature-icons/health-3d.webp'
 import reminderFeatureIcon from '../assets/feature-icons/reminder-3d.webp'
 import memoriesFeatureIcon from '../assets/feature-icons/memories-3d.webp'
 import musicFeatureIcon from '../assets/feature-icons/music-3d.webp'
+import dailyPassport3d from '../assets/reminder-icons/daily-passport-3d.webp'
 
 interface CareHomeViewProps {
   pets: Pet[]
@@ -39,7 +40,7 @@ interface CareHomeViewProps {
   nextItem: { reminder: CareReminder; next?: Date } | undefined
   complete: (item: { reminder: CareReminder; next?: Date }) => Promise<void>
   snooze: (reminder: CareReminder) => Promise<void>
-  setView: (view: 'care' | 'health' | 'memories' | 'calendar' | 'settings' | 'relax' | 'community') => void
+  setView: (view: 'care' | 'health' | 'memories' | 'calendar' | 'settings' | 'relax' | 'community' | 'senior') => void
   setEditorKind: (kind: ReminderKind | null) => void
   activeReminders: { reminder: CareReminder; next?: Date }[]
   todayItems: { reminder: CareReminder; next?: Date }[]
@@ -310,6 +311,15 @@ export function CareHomeView({
           </div>
           <b>舒壓音樂</b>
           <small>精選離線白噪音與貓狗放鬆旋律</small>
+        </button>
+
+        <button className="senior-action upgraded-card" onClick={() => setView('senior')} style={{ background: '#fdfaf5', border: '1.5px solid #f0e2cf' }}>
+          <div className="feature-card-header">
+            <i><img src={dailyPassport3d} alt="" style={{ transform: 'scale(1.1)' }} /></i>
+            <span className="card-badge" style={{ background: '#d3a665', color: '#fff' }}>高齡</span>
+          </div>
+          <b style={{ color: '#8c6020' }}>高齡照護中心</b>
+          <small>每日生理觀察與早期異變警示</small>
         </button>
       </section>
 
