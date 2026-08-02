@@ -39,14 +39,14 @@ interface PendingMedia {
 }
 
 const CATEGORIES = [
-  { key: 'seizure', label: '癲癇/抽搐 (Seizure)', icon: '🧠' },
-  { key: 'vomiting', label: '嘔吐/噁心 (Vomiting)', icon: '🤮' },
-  { key: 'diarrhea', label: '拉肚子/腹瀉 (Diarrhea)', icon: '🚽' },
-  { key: 'injury', label: '外傷/受傷 (Injury)', icon: '🩹' },
-  { key: 'walking', label: '走路異常 (Walking)', icon: '🐕' },
-  { key: 'breathing', label: '呼吸急促/困難 (Breathing)', icon: '🫁' },
-  { key: 'appetite', label: '食慾不振 (Appetite Loss)', icon: '🥣' },
-  { key: 'other', label: '其他異常 (Other)', icon: '⚠️' },
+  { key: 'seizure', label: '癲癇/抽搐', icon: '🧠' },
+  { key: 'vomiting', label: '嘔吐/噁心', icon: '🤮' },
+  { key: 'diarrhea', label: '拉肚子/腹瀉', icon: '🚽' },
+  { key: 'injury', label: '外傷/受傷', icon: '🩹' },
+  { key: 'walking', label: '走路異常', icon: '🐕' },
+  { key: 'breathing', label: '呼吸急促/困難', icon: '🫁' },
+  { key: 'appetite', label: '食慾不振', icon: '🥣' },
+  { key: 'other', label: '其他異常', icon: '⚠️' },
 ] as const
 
 export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
@@ -269,7 +269,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
           <ArrowLeft size={24} color="#173f3b" />
         </button>
         <div>
-          <span style={{ fontSize: '11px', color: '#d3a665', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>GUARDIAN EVENT CENTER</span>
+          <span style={{ fontSize: '11px', color: '#d3a665', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>異常事件記錄</span>
           <h1 style={{ margin: 0, fontSize: '22px', color: '#173f3b', fontWeight: 'bold' }}>
             {pet?.name || '毛孩'}的異常事件中心
           </h1>
@@ -286,7 +286,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
       {/* Select Event Type Category Grid */}
       <section style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '17px', color: '#173f3b', marginBottom: '14px', borderLeft: '4px solid #e05a47', paddingLeft: '8px', fontWeight: 'bold' }}>
-          選擇異常類型 (Select Event Type)
+          選擇異常類型
         </h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
@@ -325,7 +325,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
       {/* Media Capture Section */}
       <section style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '17px', color: '#173f3b', marginBottom: '14px', borderLeft: '4px solid #e05a47', paddingLeft: '8px', fontWeight: 'bold' }}>
-          現場證據保留 (Real Media Capture)
+          現場證據保留
         </h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
@@ -446,7 +446,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
       {/* Quick Notes Section */}
       <section style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '17px', color: '#173f3b', marginBottom: '14px', borderLeft: '4px solid #e05a47', paddingLeft: '8px', fontWeight: 'bold' }}>
-          快速狀況備忘 (Quick Note)
+          快速狀況備忘
         </h2>
         <div style={{ background: '#fff', borderRadius: '16px', padding: '16px', border: '1px solid #f2e9dc', boxShadow: '0 4px 12px rgba(111, 78, 55, 0.03)' }}>
           <textarea
@@ -493,7 +493,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
       {/* History timeline within Event Center */}
       <section>
         <h2 style={{ fontSize: '17px', color: '#173f3b', marginBottom: '14px', borderLeft: '4px solid #e05a47', paddingLeft: '8px', fontWeight: 'bold' }}>
-          歷史異常事件 (Historical Events)
+          歷史異常事件
         </h2>
 
         {history.length === 0 ? (

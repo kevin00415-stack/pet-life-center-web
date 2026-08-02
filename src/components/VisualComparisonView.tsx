@@ -304,7 +304,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
           <ArrowLeft size={24} color="#173f3b" />
         </button>
         <div>
-          <span style={{ fontSize: '11px', color: '#d3a665', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>VISUAL COMPARISON</span>
+          <span style={{ fontSize: '11px', color: '#d3a665', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>視覺比對</span>
           <h1 style={{ margin: 0, fontSize: '22px', color: '#173f3b', fontWeight: 'bold' }}>
             {pet.name} 的視覺比對
           </h1>
@@ -320,7 +320,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
       {/* Segment 1: Pairing Studio */}
       <section style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '16px', color: '#173f3b', marginBottom: '12px', borderLeft: '4px solid #d3a665', paddingLeft: '8px', fontWeight: 'bold' }}>
-          建立新比對 (Choose Past & Present)
+          建立新比對
         </h2>
 
         {/* Selected Pair Preview Area */}
@@ -328,7 +328,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
           {/* Left item slot */}
           <div style={{ background: '#fff', borderRadius: '16px', border: leftMediaId ? '2px solid #d3a665' : '1.5px dashed #dce7e4', padding: '12px', textAlign: 'center', minHeight: '160px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
             <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#8c6020', background: '#fdf8f0', padding: '3px 8px', borderRadius: '20px', alignSelf: 'center', marginBottom: '8px' }}>
-              過去 (Past)
+              過去
             </span>
 
             {leftItem && savedMedia[leftMediaId] ? (
@@ -369,7 +369,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
           {/* Right item slot */}
           <div style={{ background: '#fff', borderRadius: '16px', border: rightMediaId ? '2px solid #d3a665' : '1.5px dashed #dce7e4', padding: '12px', textAlign: 'center', minHeight: '160px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
             <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#173f3b', background: '#eef5f3', padding: '3px 8px', borderRadius: '20px', alignSelf: 'center', marginBottom: '8px' }}>
-              現在 (Present)
+              現在
             </span>
 
             {rightItem && savedMedia[rightMediaId] ? (
@@ -563,7 +563,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
             {/* Category selection list */}
             <div style={{ marginBottom: '14px' }}>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>
-                比對重點類別 (Select Category)
+                比對重點類別
               </label>
               <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px' }}>
                 {VISUAL_COMPARISON_CATEGORIES.map((cat) => {
@@ -594,7 +594,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
             {/* Notes textarea */}
             <div style={{ marginBottom: '14px' }}>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>
-                飼主親身觀察備忘 (Owner Note - Optional)
+                飼主親身觀察備忘（選填）
               </label>
               <textarea
                 value={note}
@@ -654,7 +654,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
         <div style={{ background: '#fff', borderRadius: '18px', padding: '16px', border: '1px solid #f2e9dc' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 'bold' }}>
-              素材媒體池 (Media Library)
+              素材媒體池
             </h3>
             <div style={{ display: 'flex', gap: '6px' }}>
               <button
@@ -798,7 +798,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
       {/* Segment 2: Historical Comparisons History */}
       <section>
         <h2 style={{ fontSize: '16px', color: '#173f3b', marginBottom: '12px', borderLeft: '4px solid #d3a665', paddingLeft: '8px', fontWeight: 'bold' }}>
-          歷史比對紀錄 (Historical Comparisons)
+          歷史比對紀錄
         </h2>
 
         {comparisons.length === 0 ? (

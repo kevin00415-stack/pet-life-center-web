@@ -84,7 +84,7 @@ describe('Guardian Visual Comparison Tests', () => {
     expect(validatePairing('photo', 'video')).toBe(false)
   })
 
-  test('5. insufficient attachments show empty states warning messages in Chinese', () => {
+  test('5. insufficient attachments show empty states warning messages in Chinese and have no mixed-language labels', () => {
     const html = renderToStaticMarkup(
       createElement(VisualComparisonView, {
         pet: petA,
@@ -96,6 +96,8 @@ describe('Guardian Visual Comparison Tests', () => {
     expect(html).toContain('目前素材池尚無任何照片或影片。')
     expect(html).toContain('選擇過去照片或影片')
     expect(html).toContain('選擇現在照片或影片')
+    expect(html).not.toContain('Choose Past &amp; Present')
+    expect(html).not.toContain('Media Library')
   })
 
   test('6 & 7. saving stores lightweight metadata (attachment IDs) without duplicating Blob objects, and persists after refresh', () => {
