@@ -468,6 +468,8 @@ export default function App() {
         exportData={exportData}
         restoreInputRef={restoreInput}
         importData={importData}
+        growthRecords={growthRecords}
+        reminders={reminders}
         nav={nav}
       />
       {editorKind && pet && <ReminderEditor pets={pets} initialKind={editorKind} voices={voices} onClose={() => setEditorKind(null)} onSave={addReminder} />}

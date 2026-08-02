@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
-  BellRinging,
   CaretRight,
   CheckCircle,
-  Clock,
   GearSix,
   Heartbeat,
   Images,
@@ -14,13 +12,12 @@ import {
   PhoneCall,
   Heart,
 } from '@phosphor-icons/react'
-import type { CareReminder, Pet, ReminderKind } from '../domain'
-import { kindIconAssets } from '../reminder-kind-assets'
+import type { CareReminder, Pet, ReminderKind, GrowthRecord } from '../domain'
 import { photoPanPercent } from '../photo-position'
 import {
-  kindLabels,
-  repeatLabels,
   occurrenceKey,
+  occurrencesOnDate,
+  occurrenceStatus,
 } from '../domain'
 import brandMark from '../assets/brand-mark.webp'
 import homeIsland from '../assets/home-island-v1.webp'
@@ -59,6 +56,8 @@ interface CareHomeViewProps {
   exportData: () => Promise<void>
   restoreInputRef: React.RefObject<HTMLInputElement | null>
   importData: (file?: File) => Promise<void>
+  growthRecords: GrowthRecord[]
+  reminders: CareReminder[]
   nav: React.ReactNode
 }
 
@@ -85,28 +84,30 @@ export function CareHomeView({
   setActivePet,
   setEditingPet,
   customHomeCover,
-  nextItem,
+  nextItem: _nextItem,
   complete,
-  snooze,
+  snooze: _snooze,
   setView,
   setEditorKind,
   activeReminders,
   todayItems,
-  medicationDone,
-  medicationMissed,
+  medicationDone: _medicationDone,
+  medicationMissed: _medicationMissed,
   todayMedication,
-  medicationRate,
-  recordOccurrence,
-  filter,
-  setFilter,
-  shown,
-  remove,
+  medicationRate: _medicationRate,
+  recordOccurrence: _recordOccurrence,
+  filter: _filter,
+  setFilter: _setFilter,
+  shown: _shown,
+  remove: _remove,
   vetVisits,
   setOpenVetVisit,
   exportVetPdf,
   exportData,
   restoreInputRef,
   importData,
+  growthRecords,
+  reminders,
   nav,
 }: CareHomeViewProps) {
   const lowStock = activeReminders
@@ -129,6 +130,218 @@ export function CareHomeView({
   // Formatted companion status tags
   const healthAlertCount = (pet?.medicalNotes ? 1 : 0) + (pet?.emergencyContact ? 1 : 0)
 
+  // --- GUARDIAN DAILY DASHBOARD MVP CALCULATIONS ---
+  const safeReminders = reminders || []
+  const safeGrowthRecords = growthRecords || []
+  const safeActiveReminders = activeReminders || []
+  const safeTodayMedication = todayMedication || []
+
+  // 1. Reminders Count
+  const todayOccurrences = safeReminders
+    .filter((r) => r.petId === activePet && r.enabled)
+    .flatMap((r) => occurrencesOnDate(r, new Date()))
+  const todayRemindersCount = todayOccurrences.length
+
+  // 2. Overdue count
+  const overdueCount = safeActiveReminders.filter(
+    (item) => item.next && item.next.getTime() < Date.now()
+  ).length
+
+  // 3. Whether medication was recorded today
+  const hasMedToday = safeTodayMedication.some(
+    (item) => item.status === 'completed' || item.status === 'late' || item.status === 'skipped'
+  )
+
+  // 4. Whether meal was recorded today
+  const todayFeedingOccurrences = safeReminders
+    .filter((r) => r.petId === activePet && r.kind === 'feeding')
+    .flatMap((r) =>
+      occurrencesOnDate(r, new Date()).map((occ) => ({
+        reminder: r,
+        occurrence: occ,
+        status: occurrenceStatus(r, occ),
+      }))
+    )
+  const hasMealToday = todayFeedingOccurrences.some(
+    (item) => item.status === 'completed' || item.status === 'late' || item.status === 'skipped'
+  )
+
+  // 5. Most recent weight
+  const petGrowth = safeGrowthRecords.filter((g) => g.petId === activePet)
+  const latestWeight = petGrowth.length
+    ? [...petGrowth].sort((a, b) => b.date.localeCompare(a.date))[0]
+    : null
+
+  // 6. Most recent abnormal event record
+  const getLatestEvent = () => {
+    if (typeof localStorage === 'undefined' || !activePet) return null
+    const saved = localStorage.getItem(`maohai-abnormal-events-${activePet}`)
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed[0]
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    return null
+  }
+  const latestEvent = getLatestEvent()
+
+  // 7. Recent activity stream builder (limit to 5)
+  interface DashboardActivityItem {
+    id: string
+    type: 'reminders' | 'abnormal-event' | 'visual-comparison' | 'weight' | 'senior-care'
+    date: Date
+    title: string
+    details: string
+    icon: string
+  }
+
+  const getRecentActivities = (): DashboardActivityItem[] => {
+    const items: DashboardActivityItem[] = []
+
+    // Reminders
+    safeActiveReminders.forEach(({ reminder }) => {
+      reminder.occurrenceRecords?.forEach((rec) => {
+        const timePart = rec.key.substring(rec.key.indexOf(':') + 1)
+        const date = new Date(timePart)
+        if (!isNaN(date.getTime())) {
+          items.push({
+            id: rec.key + '-' + rec.status,
+            type: 'reminders',
+            date,
+            title: `✓ ${reminder.title}`,
+            details: rec.status === 'completed' ? '已完成' : rec.status === 'skipped' ? '已略過' : '已補吃',
+            icon: '🔔',
+          })
+        }
+      })
+      reminder.completedOccurrences.forEach((key) => {
+        const timePart = key.substring(key.indexOf(':') + 1)
+        const date = new Date(timePart)
+        if (!isNaN(date.getTime()) && !items.some((x) => x.id.startsWith(key))) {
+          items.push({
+            id: key + '-completed-legacy',
+            type: 'reminders',
+            date,
+            title: `✓ ${reminder.title}`,
+            details: '已完成',
+            icon: '🔔',
+          })
+        }
+      })
+    })
+
+    // Weight Records
+    safeGrowthRecords
+      .filter((g) => g.petId === activePet)
+      .forEach((g) => {
+        items.push({
+          id: g.id,
+          type: 'weight',
+          date: new Date(g.date + 'T12:00:00'),
+          title: `⚖ 體重記錄: ${g.weightKg} kg`,
+          details: g.note || '記錄成長與體型',
+          icon: '⚖',
+        })
+      })
+
+    // Abnormal Events
+    if (typeof localStorage !== 'undefined' && activePet) {
+      const savedEvents = localStorage.getItem(`maohai-abnormal-events-${activePet}`)
+      if (savedEvents) {
+        try {
+          const parsed = JSON.parse(savedEvents)
+          if (Array.isArray(parsed)) {
+            const categoryLabels: Record<string, string> = {
+              seizure: '癲癇/抽搐',
+              vomiting: '嘔吐/噁心',
+              diarrhea: '拉肚子/腹瀉',
+              injury: '外傷/受傷',
+              walking: '走路異常',
+              breathing: '呼吸急促/困難',
+              appetite: '食慾不振',
+              other: '其他異常',
+            }
+            parsed.forEach((ev) => {
+              items.push({
+                id: ev.id,
+                type: 'abnormal-event',
+                date: new Date(ev.timestamp),
+                title: `🚨 異常: ${categoryLabels[ev.category] || '其他異常'}`,
+                details: ev.notes || '已記錄現場異狀',
+                icon: '🚨',
+              })
+            })
+          }
+        } catch (e) {
+          console.error(e)
+        }
+      }
+
+      // Visual Comparisons
+      const savedComps = localStorage.getItem(`maohai-visual-comparisons-${activePet}`)
+      if (savedComps) {
+        try {
+          const parsed = JSON.parse(savedComps)
+          if (Array.isArray(parsed)) {
+            const compCategories: Record<string, string> = {
+              gait: '步態',
+              spirit: '精神狀態',
+              skin: '皮膚',
+              wound: '傷口',
+              body: '體態',
+              eating: '進食動作',
+              seizure: '抽搐／發作',
+              breathing: '呼吸狀態',
+              other: '其他',
+            }
+            parsed.forEach((comp) => {
+              items.push({
+                id: comp.id,
+                type: 'visual-comparison',
+                date: new Date(comp.createdAt),
+                title: `🔍 視覺比對: ${compCategories[comp.category] || '其他'}`,
+                details: comp.note || '已進行前後照片/影片比較',
+                icon: '🔍',
+              })
+            })
+          }
+        } catch (e) {
+          console.error(e)
+        }
+      }
+
+      // Senior Care daily records
+      const savedSenior = localStorage.getItem(`maohai-senior-care-${activePet}`)
+      if (savedSenior) {
+        try {
+          const parsed = JSON.parse(savedSenior)
+          if (parsed && typeof parsed === 'object') {
+            Object.entries(parsed).forEach(([dateStr, obs]: [string, any]) => {
+              const timestamp = obs.savedAt || new Date(dateStr + 'T12:00:00').getTime()
+              items.push({
+                id: `senior-${dateStr}`,
+                type: 'senior-care',
+                date: new Date(timestamp),
+                title: `🧓 高齡生理觀察`,
+                details: obs.notes || `已觀察記錄生理狀況`,
+                icon: '🧓',
+              })
+            })
+          }
+        } catch (e) {
+          console.error(e)
+        }
+      }
+    }
+
+    return items.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 5)
+  }
+
   return (
     <main className="app-shell cozy-home">
       <header className="topbar">
@@ -148,14 +361,18 @@ export function CareHomeView({
       </header>
 
       <nav className="pet-tabs cozy-pet-tabs" aria-label="選擇毛孩">
-        {pets.map((item) => (
+        {pets.length > 1 && pets.map((item) => (
           <button
             key={item.id}
             className={item.id === activePet ? 'active' : ''}
             onClick={() => setActivePet(item.id)}
+            style={{ minWidth: '120px', maxWidth: '180px' }}
           >
             <PetAvatar pet={item} />
-            <span><b>{item.name}</b><small>{item.species}</small></span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <b>{item.name}</b>
+              <small>{item.species}</small>
+            </span>
             {item.id === activePet && <CheckCircle size={19} weight="fill" />}
           </button>
         ))}
@@ -258,23 +475,255 @@ export function CareHomeView({
         </section>
       )}
 
-      {/* NEXT TASK HERO REMINDER */}
-      <section className="hero-reminder" aria-label="下一個照護提醒">
-          <div className="hero-time">
-            <i><Clock size={26} weight="duotone" /></i>
-            <span><small>下一個照護提醒</small><strong>{nextItem?.next?.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }) || '--:--'}</strong><em>{nextItem?.reminder.title || '今天沒有待辦'}</em></span>
+      {/* 📊 TODAY SUMMARY DASHBOARD CARD (SECTION 2) */}
+      <section className="dashboard-summary-section" style={{ marginTop: '20px', marginBottom: '20px' }} aria-label="今日健康摘要">
+        <h3 style={{ fontSize: '16px', color: '#173f3b', marginBottom: '12px', borderLeft: '4px solid #d3a665', paddingLeft: '8px', fontWeight: 'bold' }}>
+          今日健康摘要
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+
+          {/* Reminders & Overdue card */}
+          <div style={{ background: '#fff', padding: '14px', borderRadius: '16px', border: '1px solid #f2e9dc', boxShadow: '0 4px 10px rgba(111,78,55,0.02)' }}>
+            <span style={{ fontSize: '11px', color: '#5e746f', fontWeight: 'bold', display: 'block' }}>今日提醒與逾期</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', margin: '6px 0' }}>
+              <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#173f3b' }}>{todayRemindersCount}</span>
+              <span style={{ fontSize: '12px', color: '#5e746f' }}>個預定</span>
+            </div>
+            <span style={{ fontSize: '12px', color: overdueCount > 0 ? '#e05a47' : '#5e746f', fontWeight: overdueCount > 0 ? 'bold' : 'normal' }}>
+              {overdueCount > 0 ? `🚨 包含 ${overdueCount} 個逾期未完成` : '✓ 目前無逾期提醒'}
+            </span>
           </div>
-          <div className="hero-actions">
-            <button className="complete" disabled={!nextItem} onClick={() => nextItem && void complete(nextItem)}>
-              <CheckCircle size={21} weight="fill" />完成
-            </button>
-            <button disabled={!nextItem} onClick={() => nextItem && void snooze(nextItem.reminder)}>
-              <Clock size={20} weight="fill" />延後
-            </button>
+
+          {/* Today Record Status card (Medications & Meals) */}
+          <div style={{ background: '#fff', padding: '14px', borderRadius: '16px', border: '1px solid #f2e9dc', boxShadow: '0 4px 10px rgba(111,78,55,0.02)' }}>
+            <span style={{ fontSize: '11px', color: '#5e746f', fontWeight: 'bold', display: 'block' }}>飲食與服藥進度</span>
+            <div style={{ margin: '8px 0', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span>💊 服藥：</span>
+                <span style={{ fontWeight: 'bold', color: hasMedToday ? '#173f3b' : '#5e746f' }}>
+                  {hasMedToday ? '已記錄' : '今日未記錄'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span>🥣 吃飯：</span>
+                <span style={{ fontWeight: 'bold', color: hasMealToday ? '#173f3b' : '#5e746f' }}>
+                  {hasMealToday ? '已記錄' : '今日未記錄'}
+                </span>
+              </div>
+            </div>
           </div>
+
+          {/* Latest Weight card */}
+          <div style={{ background: '#fff', padding: '14px', borderRadius: '16px', border: '1px solid #f2e9dc', boxShadow: '0 4px 10px rgba(111,78,55,0.02)' }}>
+            <span style={{ fontSize: '11px', color: '#5e746f', fontWeight: 'bold', display: 'block' }}>最新體重數據</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', margin: '6px 0' }}>
+              {latestWeight ? (
+                <>
+                  <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#173f3b' }}>{latestWeight.weightKg}</span>
+                  <span style={{ fontSize: '12px', color: '#5e746f' }}>kg</span>
+                </>
+              ) : (
+                <span style={{ fontSize: '14px', color: '#a0b2ae', margin: '4px 0' }}>尚無體重記錄</span>
+              )}
+            </div>
+            {latestWeight && (
+              <span style={{ fontSize: '11px', color: '#5e746f', display: 'block' }}>
+                📅 記錄日期：{latestWeight.date}
+              </span>
+            )}
+          </div>
+
+          {/* Latest Health Event card */}
+          <div style={{ background: '#fff', padding: '14px', borderRadius: '16px', border: '1px solid #f2e9dc', boxShadow: '0 4px 10px rgba(111,78,55,0.02)' }}>
+            <span style={{ fontSize: '11px', color: '#5e746f', fontWeight: 'bold', display: 'block' }}>最新異常事件</span>
+            <div style={{ margin: '6px 0' }}>
+              {latestEvent ? (
+                <>
+                  <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#e05a47', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    🚨 {latestEvent.category === 'seizure' ? '癲癇/抽搐' : latestEvent.category === 'vomiting' ? '嘔吐/噁心' : latestEvent.category === 'diarrhea' ? '拉肚子/腹瀉' : latestEvent.category === 'injury' ? '外傷/受傷' : latestEvent.category === 'walking' ? '走路異常' : latestEvent.category === 'breathing' ? '呼吸急促' : latestEvent.category === 'appetite' ? '食慾不振' : '其他異常'}
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#5e746f' }}>
+                    {new Date(latestEvent.timestamp).toLocaleDateString('zh-TW')}
+                  </span>
+                </>
+              ) : (
+                <span style={{ fontSize: '14px', color: '#a0b2ae', display: 'block', margin: '4px 0' }}>無異常記錄</span>
+              )}
+            </div>
+          </div>
+
+        </div>
       </section>
 
-      {/* UPGRADED COMPANION ACTIONS CARD SYSTEM */}
+      {/* ⏰ TODAY REMINDERS OPERATION PANEL (SECTION 3) */}
+      <section className="dashboard-reminders-section" style={{ marginBottom: '20px' }} aria-label="今日照護提醒">
+        <h3 style={{ fontSize: '16px', color: '#173f3b', marginBottom: '12px', borderLeft: '4px solid #d3a665', paddingLeft: '8px', fontWeight: 'bold' }}>
+          今日照護提醒
+        </h3>
+
+        {todayItems.length === 0 ? (
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', textAlign: 'center', border: '1px solid #f2e9dc', color: '#5e746f' }}>
+            🎉 <b>今天太棒了！所有事情都已完成</b>
+            <p style={{ margin: '6px 0 0 0', fontSize: '13px', color: '#809692' }}>沒有待辦的照護工作，給自己和毛孩一個擁抱吧！</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {todayItems.map((item) => {
+              const occurrenceTime = item.next ? item.next.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--'
+              const isOverdue = item.next && item.next.getTime() < Date.now()
+              const key = item.next ? occurrenceKey(item.reminder.id, item.next) : ''
+              const completed = item.reminder.completedOccurrences.includes(key)
+
+              return (
+                <div
+                  key={item.reminder.id}
+                  style={{
+                    background: '#fff',
+                    borderRadius: '16px',
+                    padding: '14px',
+                    border: isOverdue && !completed ? '1.5px solid #e05a47' : '1px solid #f2e9dc',
+                    boxShadow: '0 4px 10px rgba(111,78,55,0.02)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '12px', background: isOverdue ? '#fdf2f0' : '#f5f8fd', color: isOverdue ? '#e05a47' : '#478be0', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                        {isOverdue ? '⚠️ 逾期' : '待辦'}
+                      </span>
+                      <span style={{ fontSize: '13px', color: '#5e746f', fontWeight: 'bold' }}>
+                        🕒 {occurrenceTime}
+                      </span>
+                    </div>
+                    <b style={{ fontSize: '15px', color: '#173f3b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.reminder.title}
+                    </b>
+                    <small style={{ fontSize: '12px', color: '#809692', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.reminder.dose || item.reminder.details || '無詳細說明'}
+                    </small>
+                  </div>
+
+                  <button
+                    onClick={() => complete(item)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: '#173f3b',
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                  >
+                    完成
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* 🚀 QUICK ADD ACTIONS BOARD (SECTION 4) */}
+      <section className="dashboard-quickadd-section" style={{ marginBottom: '20px' }} aria-label="日常照護快速登錄">
+        <h3 style={{ fontSize: '16px', color: '#173f3b', marginBottom: '12px', borderLeft: '4px solid #d3a665', paddingLeft: '8px', fontWeight: 'bold' }}>
+          日常照護快速登錄
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+
+          <button
+            onClick={() => setEditorKind('medication')}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', borderRadius: '12px', border: '1px solid #c8e0db', background: '#fff', cursor: 'pointer', textAlign: 'left', minHeight: '48px' }}
+          >
+            <span style={{ fontSize: '18px' }}>💊</span>
+            <span><b>登錄吃藥提醒</b></span>
+          </button>
+
+          <button
+            onClick={() => setEditorKind('feeding')}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', borderRadius: '12px', border: '1px solid #c8e0db', background: '#fff', cursor: 'pointer', textAlign: 'left', minHeight: '48px' }}
+          >
+            <span style={{ fontSize: '18px' }}>🥣</span>
+            <span><b>登錄吃飯提醒</b></span>
+          </button>
+
+          <button
+            onClick={() => setView('health')}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', borderRadius: '12px', border: '1px solid #c8e0db', background: '#fff', cursor: 'pointer', textAlign: 'left', minHeight: '48px' }}
+          >
+            <span style={{ fontSize: '18px' }}>⚖</span>
+            <span><b>登錄體重記錄</b></span>
+          </button>
+
+          <button
+            onClick={() => setView('event')}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', borderRadius: '12px', border: '1px solid #c8e0db', background: '#fff', cursor: 'pointer', textAlign: 'left', minHeight: '48px' }}
+          >
+            <span style={{ fontSize: '18px' }}>🚨</span>
+            <span><b>登錄異常事件</b></span>
+          </button>
+
+          <button
+            onClick={() => setView('visual-comparison')}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', borderRadius: '12px', border: '1px solid #c8e0db', background: '#fff', cursor: 'pointer', textAlign: 'left', minHeight: '48px', gridColumn: 'span 2' }}
+          >
+            <span style={{ fontSize: '18px' }}>🔍</span>
+            <span><b>登錄視覺前後照片/影片比對</b></span>
+          </button>
+
+        </div>
+      </section>
+
+      {/* 📜 RECENT ACTIVITY LIST (SECTION 5) */}
+      <section className="dashboard-activity-section" style={{ marginBottom: '32px' }} aria-label="最新活動紀錄">
+        <h3 style={{ fontSize: '16px', color: '#173f3b', marginBottom: '12px', borderLeft: '4px solid #d3a665', paddingLeft: '8px', fontWeight: 'bold' }}>
+          最新活動紀錄
+        </h3>
+
+        {getRecentActivities().length === 0 ? (
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '20px', textAlign: 'center', border: '1px solid #f2e9dc', color: '#5e746f', fontSize: '13px' }}>
+            尚無最近的活動記錄。
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: '#fff', borderRadius: '16px', padding: '14px', border: '1px solid #f2e9dc' }}>
+            {getRecentActivities().map((act) => (
+              <div
+                key={act.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  paddingBottom: '8px',
+                  borderBottom: '1px solid #f9f6f0',
+                  marginBottom: '8px',
+                }}
+              >
+                <span style={{ fontSize: '18px', flexShrink: 0, marginTop: '2px' }}>{act.icon}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2px' }}>
+                    <b style={{ fontSize: '14px', color: '#173f3b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {act.title}
+                    </b>
+                    <span style={{ fontSize: '11px', color: '#809692', flexShrink: 0 }}>
+                      {act.date.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#5e746f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {act.details}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 6. EXISTING HOME SECTIONS BELOW (Feature shortcuts, Low Stock Refill, Vet visits, and single-device data safety) */}
       <section className="game-actions" aria-label="常用功能">
         <button className="health-action upgraded-card" onClick={() => setView('health')}>
           <div className="feature-card-header">
@@ -341,32 +790,6 @@ export function CareHomeView({
         </button>
       </section>
 
-      <section className="today-journey">
-        <div className="section-heading">
-          <div><span>DAILY CARE</span><h2>今日照護</h2></div>
-          <button onClick={() => setView('calendar')}>查看全部 <CaretRight size={16} /></button>
-        </div>
-        {todayItems.length ? (
-          <div className="journey-track">
-            {todayItems.map((item, index) => (
-              <button key={item.reminder.id} onClick={() => setView('calendar')}>
-                <i className={index === 0 ? 'current' : ''}>
-                  {index === 0 ? <BellRinging size={22} weight="fill" /> : <Clock size={22} weight="duotone" />}
-                </i>
-                <time>{item.next?.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })}</time>
-                <span>{item.reminder.title}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <button className="journey-empty" onClick={() => setEditorKind('care')}>
-            <CheckCircle size={26} weight="duotone" />
-            <span><b>今天沒有待辦</b><small>新增一個照護提醒，行程會出現在這裡。</small></span>
-            <Plus size={20} weight="bold" />
-          </button>
-        )}
-      </section>
-
       {lowStock && (
         <button className="stock-alert" onClick={() => setEditorKind('medication')}>
           <i><Package size={30} weight="duotone" /></i>
@@ -374,67 +797,6 @@ export function CareHomeView({
           <CaretRight size={22} weight="bold" />
         </button>
       )}
-
-      {todayMedication.length > 0 && (
-        <section className="adherence-card">
-          <div className="adherence-summary">
-            <div><span className="eyebrow">TODAY'S MEDICATION</span><h2>今日服藥完成率</h2><p>{medicationDone} 次完成・{medicationMissed.length} 次待確認・共 {todayMedication.length} 次</p></div>
-            <strong>{medicationRate}<small>%</small></strong>
-          </div>
-          <div className="progress-track"><i style={{ width: `${medicationRate}%` }} /></div>
-          {medicationMissed.length > 0 && (
-            <div className="missed-list">
-              <b>有服藥時間已經過了</b>
-              {medicationMissed.map((item) => (
-                <div key={occurrenceKey(item.reminder.id, item.occurrence)}>
-                  <span><time>{item.occurrence.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })}</time><em>{item.reminder.title} {item.reminder.dose}</em></span>
-                  <span><button onClick={() => void recordOccurrence(item.reminder, item.occurrence, 'late')}>已補吃</button><button className="skip" onClick={() => void recordOccurrence(item.reminder, item.occurrence, 'skipped')}>本次略過</button></span>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      <section className="quick-section">
-        <div className="section-title">
-          <div><span className="eyebrow">QUICK ADD</span><h2>快速新增照護</h2></div>
-          <small>常用項目一鍵建立</small>
-        </div>
-        <div className="quick-grid">
-          {(['medication', 'feeding', 'vet', 'vaccine', 'care'] as ReminderKind[]).map((kind) => (
-            <button key={kind} onClick={() => setEditorKind(kind)}>
-              <i className={kind}><img src={kindIconAssets[kind]} alt="" /></i>
-              <span><b>{kindLabels[kind]}</b><small>建立{kindLabels[kind]}時間與提示</small></span>
-              <em><Plus size={16} weight="bold" /></em>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="schedule-section">
-        <div className="section-title">
-          <div><span className="eyebrow">CARE SCHEDULE</span><h2>{pet?.name || '毛孩'}的照護表</h2></div>
-          <button onClick={() => setEditorKind('medication')}>＋ 新增</button>
-        </div>
-        <div className="filters">
-          {([['today', '今天'], ['upcoming', '接下來'], ['all', '全部']] as const).map(([value, label]) => (
-            <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>
-          ))}
-        </div>
-        <div className="reminder-list">
-          {shown.length ? shown.map((item) => (
-            <article key={item.reminder.id}>
-              <time><b>{item.next?.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })}</b><small>{item.next?.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}</small></time>
-              <i className={item.reminder.kind}><img src={kindIconAssets[item.reminder.kind]} alt="" /></i>
-              <div><small>{kindLabels[item.reminder.kind]}・{repeatLabels[item.reminder.repeat]}</small><b>{item.reminder.title}</b><p>{item.reminder.dose || item.reminder.details || '尚未填寫備註'}</p>{item.reminder.voiceClipId && <em>● 自訂語音</em>}</div>
-              <button className="item-menu" onClick={() => void remove(item.reminder)} aria-label={`刪除${item.reminder.title}`}>×</button>
-            </article>
-          )) : (
-            <div className="list-empty"><i><Clock size={24} /></i><b>{filter === 'today' ? '今天沒有其他提醒' : '這裡還沒有提醒'}</b><p>照護紀錄越清楚，就越不容易漏掉重要時刻。</p></div>
-          )}
-        </div>
-      </section>
 
       {vetVisits.length > 0 && (
         <section className="visit-section">
