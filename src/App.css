@@ -878,9 +878,23 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   height: 240px;
   position: relative;
   overflow: hidden;
+  background: #efe2cf;
 }
 
-.pet-hero-container .island-hero img {
+.pet-hero-container .island-hero:not(.custom-pet-cover) img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  background: #efe2cf;
+  transform: none !important;
+}
+
+.pet-hero-container .island-hero.custom-pet-cover img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
