@@ -7,6 +7,7 @@ import MemoriesPage from './MemoriesPage'
 import PetEditor from './PetEditor'
 import CareCalendar from './CareCalendar'
 import SettingsPage from './SettingsPage'
+import ReminderCenterView from './components/ReminderCenterView'
 import RelaxPage from './RelaxPage'
 import CommunityHome from './community/CommunityHome'
 import type { CareReminder, VoiceClip, MemoryEntry, Pet, ReminderKind, GrowthRecord } from './domain'
@@ -67,6 +68,8 @@ export default function App() {
   const [filter, setFilter] = useState<'today' | 'upcoming' | 'all'>('today')
   const [toast, setToast] = useState('')
   const [openVetVisit, setOpenVetVisit] = useState<CareReminder | null>(null)
+  const [editingReminder, setEditingReminder] = useState<CareReminder | null>(null)
+  const [showCalendarView, setShowCalendarView] = useState(false)
 
   const [view, setView] = useState<View>(() => {
     const hash = window.location.hash
@@ -356,12 +359,83 @@ export default function App() {
   if (view === 'calendar') {
     return (
       <main className="app-shell">
-        <CareCalendar
-          pet={pet}
-          reminders={reminders}
-          onBack={() => setView('care')}
-          onComplete={(reminder, occurrence) => recordOccurrence(reminder, occurrence, 'completed')}
-        />
+        {showCalendarView ? (
+          <div>
+            <div style={{ padding: '16px', background: '#fbf8f3' }}>
+              <button
+                onClick={() => setShowCalendarView(false)}
+                style={{
+                  padding: '10px 18px',
+                  borderRadius: '12px',
+                  background: '#173f3b',
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                }}
+              >
+                ← 返回守護提醒中心
+              </button>
+            </div>
+            <CareCalendar
+              pet={pet}
+              reminders={reminders}
+              onBack={() => setShowCalendarView(false)}
+              onComplete={(reminder, occurrence) => recordOccurrence(reminder, occurrence, 'completed')}
+            />
+          </div>
+        ) : (
+          <div>
+            <div style={{ padding: '16px 16px 0 16px', background: '#fbf8f3', textAlign: 'right' }}>
+              <button
+                onClick={() => setShowCalendarView(true)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  background: '#d3a665',
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                }}
+              >
+                📅 切換至照護月曆
+              </button>
+            </div>
+            <ReminderCenterView
+              pets={pets}
+              pet={pet}
+              activePet={activePet}
+              setActivePet={setActivePet}
+              reminders={reminders}
+              voices={voices}
+              onBack={() => setView('care')}
+              onComplete={async (reminder, occurrence) => {
+                await recordOccurrence(reminder, occurrence, 'completed')
+                await refresh()
+              }}
+              onSkip={async (reminder, occurrence) => {
+                await recordOccurrence(reminder, occurrence, 'skipped')
+                await refresh()
+              }}
+              onSnooze={async (reminder, _occurrence, minutes) => {
+                if (pet) {
+                  await scheduleSnooze(reminder, pet, minutes)
+                  await refresh()
+                }
+              }}
+              onDelete={async (reminderId) => {
+                await deleteReminder(reminderId)
+                await refresh()
+                notify('提醒項目已成功刪除')
+              }}
+              onCreateNew={(kind) => setEditorKind(kind)}
+              onEditExisting={(reminder) => setEditingReminder(reminder)}
+            />
+          </div>
+        )}
         {nav}
       </main>
     )
@@ -473,6 +547,7 @@ export default function App() {
         nav={nav}
       />
       {editorKind && pet && <ReminderEditor pets={pets} initialKind={editorKind} voices={voices} onClose={() => setEditorKind(null)} onSave={addReminder} />}
+      {editingReminder && pet && <ReminderEditor pets={pets} initialKind={editingReminder.kind} voices={voices} editingReminder={editingReminder} onClose={() => setEditingReminder(null)} onSave={async (rem, voice) => { await addReminder(rem, voice); setEditingReminder(null); }} />}
       {openVetVisit && <VetVisitPanel reminder={openVetVisit} onClose={() => setOpenVetVisit(null)} onSave={saveVetVisit} />}
       {editingPet && <PetEditor pet={editingPet === 'new' ? undefined : editingPet} onClose={() => setEditingPet(null)} onSave={updatePet} onDelete={removePet} />}
       {toast && <div className="toast">{toast}</div>}
