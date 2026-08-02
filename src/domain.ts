@@ -186,6 +186,87 @@ function dateFromOccurrenceKey(key: string) {
 
 export function buildHealthTimeline(reminders: CareReminder[], petId: string, now = new Date()) {
   const events: TimelineEvent[] = []
+
+  // Automatically read and merge abnormal events from localStorage to inject into Timeline
+  if (typeof localStorage !== 'undefined') {
+    const saved = localStorage.getItem(`maohai-abnormal-events-${petId}`)
+    if (saved) {
+      try {
+        const eventsList = JSON.parse(saved)
+        if (Array.isArray(eventsList)) {
+          const categoryLabels: Record<string, string> = {
+            seizure: '癲癇/抽搐 (Seizure)',
+            vomiting: '嘔吐/噁心 (Vomiting)',
+            diarrhea: '拉肚子/腹瀉 (Diarrhea)',
+            injury: '外傷/受傷 (Injury)',
+            walking: '走路異常 (Abnormal Walking)',
+            breathing: '呼吸急促/困難 (Breathing)',
+            appetite: '食慾不振 (Appetite Loss)',
+            other: '其他異常 (Other)',
+          }
+
+          eventsList.forEach((ev: any) => {
+            let details = ev.notes || '無備註說明'
+            if (ev.hasPhoto || ev.hasVideo) {
+              const evidenceParts: string[] = []
+              if (ev.hasPhoto) evidenceParts.push('📷 照片證據')
+              if (ev.hasVideo) evidenceParts.push('🎥 影片證據')
+              details += `\n(已附加: ${evidenceParts.join('、')})`
+            }
+            events.push({
+              id: ev.id || `abnormal-${ev.timestamp}`,
+              petId,
+              kind: 'care',
+              title: `🚨 異常：${categoryLabels[ev.category] || '其他異常'}`,
+              details,
+              date: new Date(ev.timestamp),
+              status: 'recorded',
+            })
+          })
+        }
+      } catch (e) {
+        console.error('Failed to parse abnormal events in timeline builder', e)
+      }
+    }
+
+    const savedComps = localStorage.getItem(`maohai-visual-comparisons-${petId}`)
+    if (savedComps) {
+      try {
+        const compsList = JSON.parse(savedComps)
+        if (Array.isArray(compsList)) {
+          const compCategories: Record<string, string> = {
+            gait: '步態',
+            spirit: '精神狀態',
+            skin: '皮膚',
+            wound: '傷口',
+            body: '體態',
+            eating: '進食動作',
+            seizure: '抽搐／發作',
+            breathing: '呼吸狀態',
+            other: '其他',
+          }
+
+          compsList.forEach((comp: any) => {
+            const catLabel = compCategories[comp.category] || comp.category || '其他'
+            const mediaLabel = comp.mediaType === 'video' ? '🎥 影片比對' : '📷 照片比對'
+            const details = `過去 vs 現在 | ${mediaLabel}\n備忘: ${comp.note || '無備註'}`
+            events.push({
+              id: comp.id || `comparison-${comp.createdAt}`,
+              petId,
+              kind: 'care',
+              title: `🔍 視覺比對：${catLabel}`,
+              details,
+              date: new Date(comp.createdAt),
+              status: 'recorded',
+            })
+          })
+        }
+      } catch (e) {
+        console.error('Failed to parse visual comparisons in timeline builder', e)
+      }
+    }
+  }
+
   reminders.filter((reminder) => reminder.petId === petId).forEach((reminder) => {
     const recordedKeys = new Set<string>()
     reminder.occurrenceRecords?.forEach((record) => {

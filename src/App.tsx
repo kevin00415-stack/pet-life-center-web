@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import './App.css'
 import ReminderEditor from './ReminderEditor'
 import VetVisitPanel from './VetVisitPanel'
@@ -35,6 +35,9 @@ import { BottomNav, type View } from './components/BottomNav'
 import { usePets } from './hooks/usePets'
 import { useAlarmController } from './hooks/useAlarmController'
 import { CareHomeView } from './components/CareHomeView'
+import SeniorCareView from './components/SeniorCareView'
+import EventCenterView from './components/EventCenterView'
+import VisualComparisonView from './components/VisualComparisonView'
 
 export default function App() {
   const {
@@ -64,7 +67,67 @@ export default function App() {
   const [filter, setFilter] = useState<'today' | 'upcoming' | 'all'>('today')
   const [toast, setToast] = useState('')
   const [openVetVisit, setOpenVetVisit] = useState<CareReminder | null>(null)
-  const [view, setView] = useState<View>('care')
+
+  const [view, setView] = useState<View>(() => {
+    const hash = window.location.hash
+    if (hash.startsWith('#/community')) return 'community'
+    if (hash === '#/health') return 'health'
+    if (hash === '#/memories') return 'memories'
+    if (hash === '#/calendar') return 'calendar'
+    if (hash === '#/settings') return 'settings'
+    if (hash === '#/relax') return 'relax'
+    if (hash === '#/senior') return 'senior'
+    if (hash === '#/event') return 'event'
+    if (hash === '#/visual-comparison') return 'visual-comparison'
+    return 'care'
+  })
+
+  // Synchronize view changes to hash
+  useEffect(() => {
+    const hash = window.location.hash
+    if (view === 'community') {
+      if (!hash.startsWith('#/community')) {
+        window.location.hash = '#/community'
+      }
+    } else {
+      let targetHash = '#/' + view
+      if (view === 'care') targetHash = '#/'
+      if (hash !== targetHash) {
+        window.location.hash = targetHash
+      }
+    }
+  }, [view])
+
+  // Synchronize hash changes back to view state
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash
+      if (hash.startsWith('#/community')) {
+        setView('community')
+      } else if (hash === '#/health') {
+        setView('health')
+      } else if (hash === '#/memories') {
+        setView('memories')
+      } else if (hash === '#/calendar') {
+        setView('calendar')
+      } else if (hash === '#/settings') {
+        setView('settings')
+      } else if (hash === '#/relax') {
+        setView('relax')
+      } else if (hash === '#/senior') {
+        setView('senior')
+      } else if (hash === '#/event') {
+        setView('event')
+      } else if (hash === '#/visual-comparison') {
+        setView('visual-comparison')
+      } else {
+        setView('care')
+      }
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
   const [editingPet, setEditingPet] = useState<Pet | 'new' | null>(null)
   const restoreInput = useRef<HTMLInputElement>(null)
 
@@ -334,6 +397,41 @@ export default function App() {
     return (
       <main className="app-shell">
         <CommunityHome onBack={() => setView('care')} />
+        {nav}
+      </main>
+    )
+  }
+  if (view === 'senior') {
+    return (
+      <main className="app-shell">
+        <SeniorCareView
+          pet={pet}
+          todayMedication={todayMedication}
+          recordOccurrence={recordOccurrence}
+          onBack={() => setView('care')}
+        />
+        {nav}
+      </main>
+    )
+  }
+  if (view === 'event') {
+    return (
+      <main className="app-shell">
+        <EventCenterView
+          pet={pet}
+          onBack={() => setView('care')}
+        />
+        {nav}
+      </main>
+    )
+  }
+  if (view === 'visual-comparison') {
+    return (
+      <main className="app-shell">
+        <VisualComparisonView
+          pet={pet}
+          onBack={() => setView('care')}
+        />
         {nav}
       </main>
     )

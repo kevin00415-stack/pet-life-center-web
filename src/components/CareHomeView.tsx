@@ -11,6 +11,8 @@ import {
   Package,
   PencilSimple,
   Plus,
+  PhoneCall,
+  Heart,
 } from '@phosphor-icons/react'
 import type { CareReminder, Pet, ReminderKind } from '../domain'
 import { kindIconAssets } from '../reminder-kind-assets'
@@ -26,6 +28,7 @@ import healthFeatureIcon from '../assets/feature-icons/health-3d.webp'
 import reminderFeatureIcon from '../assets/feature-icons/reminder-3d.webp'
 import memoriesFeatureIcon from '../assets/feature-icons/memories-3d.webp'
 import musicFeatureIcon from '../assets/feature-icons/music-3d.webp'
+import dailyPassport3d from '../assets/reminder-icons/daily-passport-3d.webp'
 
 interface CareHomeViewProps {
   pets: Pet[]
@@ -37,7 +40,7 @@ interface CareHomeViewProps {
   nextItem: { reminder: CareReminder; next?: Date } | undefined
   complete: (item: { reminder: CareReminder; next?: Date }) => Promise<void>
   snooze: (reminder: CareReminder) => Promise<void>
-  setView: (view: 'care' | 'health' | 'memories' | 'calendar' | 'settings' | 'relax' | 'community') => void
+  setView: (view: 'care' | 'health' | 'memories' | 'calendar' | 'settings' | 'relax' | 'community' | 'senior' | 'event' | 'visual-comparison') => void
   setEditorKind: (kind: ReminderKind | null) => void
   activeReminders: { reminder: CareReminder; next?: Date }[]
   todayItems: { reminder: CareReminder; next?: Date }[]
@@ -57,6 +60,22 @@ interface CareHomeViewProps {
   restoreInputRef: React.RefObject<HTMLInputElement | null>
   importData: (file?: File) => Promise<void>
   nav: React.ReactNode
+}
+
+function calculateAge(birthDateString?: string) {
+  if (!birthDateString) return ''
+  const birth = new Date(birthDateString)
+  if (isNaN(birth.getTime())) return ''
+  const now = new Date()
+  let years = now.getFullYear() - birth.getFullYear()
+  let months = now.getMonth() - birth.getMonth()
+  if (months < 0 || (months === 0 && now.getDate() < birth.getDate())) {
+    years--
+    months += 12
+  }
+  if (years === 0) return `${months} 個月`
+  if (months === 0) return `${years} 歲`
+  return `${years} 歲 ${months} 個月`
 }
 
 export function CareHomeView({
@@ -93,7 +112,6 @@ export function CareHomeView({
   const lowStock = activeReminders
     .filter(({ reminder }) => reminder.kind === 'medication' && reminder.medicationStock)
     .map(({ reminder }) => {
-      // Inline recalculation to avoid prop-drilling complex stock summary lists
       const completed = reminder.completedOccurrences || []
       const initial = reminder.medicationStock?.initialQuantity || 0
       const dose = reminder.medicationStock?.doseQuantity || 1
@@ -106,6 +124,11 @@ export function CareHomeView({
     })
     .find(({ summary }) => summary.needsRefill)
 
+  const petAge = pet?.birthDate ? calculateAge(pet.birthDate) : ''
+
+  // Formatted companion status tags
+  const healthAlertCount = (pet?.medicalNotes ? 1 : 0) + (pet?.emergencyContact ? 1 : 0)
+
   return (
     <main className="app-shell cozy-home">
       <header className="topbar">
@@ -114,7 +137,7 @@ export function CareHomeView({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <b>毛孩生活中心</b>
-              <span style={{ fontSize: '10px', background: '#d3a665', color: '#fff', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>Phase 0 Test</span>
+              <span style={{ fontSize: '10px', background: '#d3a665', color: '#fff', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>App</span>
             </div>
             <small>安心陪伴每一天</small>
           </div>
@@ -158,22 +181,84 @@ export function CareHomeView({
           <small><LockKey size={17} />資料只保存在這台裝置，不會自動上傳。</small>
         </section>
       ) : (<>
-      <section className={`island-hero ${customHomeCover ? 'custom-pet-cover' : ''}`} aria-label={`${pet.name}的首頁封面`}>
-        <img
-          src={customHomeCover || homeIsland}
-          alt={customHomeCover ? `${pet.name}的首頁照片` : '狗狗與貓咪在溫暖居家小島上休息'}
-          style={customHomeCover ? (() => {
-            const position = { x: pet.coverPosition?.x ?? 50, y: pet.coverPosition?.y ?? 50 }
-            const zoom = pet.coverPosition?.zoom ?? 1
-            const pan = photoPanPercent(position, zoom)
-            return {
-              objectPosition: `${position.x}% ${position.y}%`,
-              transform: `translate3d(${pan.x}%, ${pan.y}%, 0) scale(${zoom})`,
-            }
-          })() : undefined}
-        />
-        <button className="change-cover-photo" onClick={() => setEditingPet(pet)}><Images size={18} />更換首頁照片</button>
+      {/* 🌟 UPGRADED PET HERO CARD */}
+      <section className="pet-hero-container">
+        <div className={`island-hero ${customHomeCover ? 'custom-pet-cover' : ''}`} aria-label={`${pet.name}的首頁封面`}>
+          <img
+            src={customHomeCover || homeIsland}
+            alt={customHomeCover ? `${pet.name}的首頁照片` : '狗狗與貓咪在溫暖居家小島上休息'}
+            style={customHomeCover ? (() => {
+              const position = { x: pet.coverPosition?.x ?? 50, y: pet.coverPosition?.y ?? 50 }
+              const zoom = pet.coverPosition?.zoom ?? 1
+              const pan = photoPanPercent(position, zoom)
+              return {
+                objectPosition: `${position.x}% ${position.y}%`,
+                transform: `translate3d(${pan.x}%, ${pan.y}%, 0) scale(${zoom})`,
+              }
+            })() : undefined}
+          />
+          <button className="change-cover-photo" onClick={() => setEditingPet(pet)}><Images size={18} />更換首頁照片</button>
+        </div>
+
+        {/* Floating Pet Info Card overlay */}
+        <div className="pet-hero-overlay">
+          <div className="pet-hero-avatar-wrapper">
+            <PetAvatar pet={pet} scale={1.5} />
+          </div>
+          <div className="pet-hero-meta">
+            <div className="pet-hero-title">
+              <h2>{pet.name}</h2>
+              <span className="pet-species-badge">{pet.species}</span>
+            </div>
+            <div className="pet-hero-stats">
+              {petAge && <span className="stat-pill"><Heart size={14} weight="fill" /> {petAge}</span>}
+              {pet.birthDate && <span className="stat-pill">🎂 {pet.birthDate}</span>}
+            </div>
+          </div>
+        </div>
       </section>
+
+      {/* 🚨 EMERGENCY SHORTCUT SHIELD CARD */}
+      {healthAlertCount > 0 && (
+        <section className="emergency-shield-card">
+          <div className="shield-header">
+            <Heartbeat size={24} weight="fill" className="shield-icon" />
+            <div>
+              <h3>重要照護與緊急聯絡資訊</h3>
+              <p>當面臨緊急情況時，此處資訊可供快速檢視</p>
+            </div>
+          </div>
+          <div className="shield-body">
+            {pet.medicalNotes && (
+              <div className="shield-row">
+                <strong>⚠️ 備註與過敏史：</strong>
+                <span>{pet.medicalNotes}</span>
+              </div>
+            )}
+            {pet.emergencyContact && (
+              <div className="shield-row contact-row">
+                <PhoneCall size={16} weight="bold" />
+                <strong>緊急聯絡：</strong>
+                <span>{pet.emergencyContact}</span>
+              </div>
+            )}
+            {pet.vetHospital && (
+              <div className="shield-row">
+                <strong>🏥 常去醫院：</strong>
+                <span>{pet.vetHospital}</span>
+              </div>
+            )}
+            {pet.microchipNumber && (
+              <div className="shield-row microchip-row">
+                <strong>🆔 晶片號碼 ({pet.microchipStatus || '已登記'})：</strong>
+                <span>{pet.microchipNumber}</span>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* NEXT TASK HERO REMINDER */}
       <section className="hero-reminder" aria-label="下一個照護提醒">
           <div className="hero-time">
             <i><Clock size={26} weight="duotone" /></i>
@@ -189,25 +274,70 @@ export function CareHomeView({
           </div>
       </section>
 
-      {pet && (
-        <div className="pet-profile-actions">
-          <span>{pet.birthDate ? `${pet.name}・生日 ${pet.birthDate}` : `${pet.name}・可加入生日與專屬照片`}</span>
-        </div>
-      )}
-
+      {/* UPGRADED COMPANION ACTIONS CARD SYSTEM */}
       <section className="game-actions" aria-label="常用功能">
-        <button className="health-action" onClick={() => setView('health')}>
-          <i><img src={healthFeatureIcon} alt="" /></i><b>健康紀錄</b><small>體重與看診</small>
+        <button className="health-action upgraded-card" onClick={() => setView('health')}>
+          <div className="feature-card-header">
+            <i><img src={healthFeatureIcon} alt="" /></i>
+            <span className="card-badge">健康</span>
+          </div>
+          <b>健康紀錄</b>
+          <small>追蹤體重趨勢與獸醫看診準備</small>
         </button>
-        <button className="reminder-action" onClick={() => setEditorKind('medication')}>
-          <i><img src={reminderFeatureIcon} alt="" /></i><b>照護提醒</b><small>餵藥與回診</small>
-          {activeReminders.length > 0 && <em>{activeReminders.length}</em>}
+
+        <button className="reminder-action upgraded-card" onClick={() => setEditorKind('medication')}>
+          <div className="feature-card-header">
+            <i><img src={reminderFeatureIcon} alt="" /></i>
+            <span className="card-badge highlight">提醒</span>
+          </div>
+          <b>照護提醒</b>
+          <small>設定餵藥、餵食與日常護理</small>
+          {activeReminders.length > 0 && <span className="action-counter-dot">{activeReminders.length}</span>}
         </button>
-        <button className="memory-action" onClick={() => setView('memories')}>
-          <i><img src={memoriesFeatureIcon} alt="" /></i><b>回憶相簿</b><small>照片與故事</small>
+
+        <button className="memory-action upgraded-card" onClick={() => setView('memories')}>
+          <div className="feature-card-header">
+            <i><img src={memoriesFeatureIcon} alt="" /></i>
+            <span className="card-badge">回憶</span>
+          </div>
+          <b>回憶與日記</b>
+          <small>記下心情、食慾與今日的生活故事</small>
         </button>
-        <button className="music-action" onClick={() => setView('relax')}>
-          <i><img src={musicFeatureIcon} alt="" /></i><b>舒壓音樂</b><small>離線安心播放</small>
+
+        <button className="music-action upgraded-card" onClick={() => setView('relax')}>
+          <div className="feature-card-header">
+            <i><img src={musicFeatureIcon} alt="" /></i>
+            <span className="card-badge">舒壓</span>
+          </div>
+          <b>舒壓音樂</b>
+          <small>精選離線白噪音與貓狗放鬆旋律</small>
+        </button>
+
+        <button className="senior-action upgraded-card" onClick={() => setView('senior')} style={{ background: '#fdfaf5', border: '1.5px solid #f0e2cf' }}>
+          <div className="feature-card-header">
+            <i><img src={dailyPassport3d} alt="" style={{ transform: 'scale(1.1)' }} /></i>
+            <span className="card-badge" style={{ background: '#d3a665', color: '#fff' }}>高齡</span>
+          </div>
+          <b style={{ color: '#8c6020' }}>高齡照護中心</b>
+          <small>每日生理觀察與早期異變警示</small>
+        </button>
+
+        <button className="event-action upgraded-card" onClick={() => setView('event')} style={{ background: '#fdf2f0', border: '1.5px solid #f9dedb' }}>
+          <div className="feature-card-header">
+            <i><img src={reminderFeatureIcon} alt="" style={{ filter: 'hue-rotate(320deg)' }} /></i>
+            <span className="card-badge" style={{ background: '#e05a47', color: '#fff' }}>守護</span>
+          </div>
+          <b style={{ color: '#6d1d11' }}>異常事件記錄</b>
+          <small>快速錄像拍下抽搐、嘔吐等突發異變</small>
+        </button>
+
+        <button className="visual-comparison-action upgraded-card" onClick={() => setView('visual-comparison')} style={{ background: '#f5f8fd', border: '1.5px solid #dbe6f9' }}>
+          <div className="feature-card-header">
+            <i><img src={memoriesFeatureIcon} alt="" style={{ filter: 'hue-rotate(180deg)' }} /></i>
+            <span className="card-badge" style={{ background: '#478be0', color: '#fff' }}>比對</span>
+          </div>
+          <b style={{ color: '#113a6d' }}>視覺比對</b>
+          <small>前後照片與影片對照，守護毛孩微小異變</small>
         </button>
       </section>
 
@@ -336,12 +466,41 @@ export function CareHomeView({
   )
 }
 
-// Minimal helper placeholder to avoid importing PetAvatar separately in parent
-function PetAvatar({ pet }: { pet: Pet }) {
+// Upgraded avatar display with custom sizing helper
+function PetAvatar({ pet, scale = 1 }: { pet: Pet; scale?: number }) {
   const coverUrl = useBlobUrl(pet.avatarPhoto)
+  const size = Math.round(38 * scale)
   return (
-    <div className="pet-avatar" style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', background: '#eef5f3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
-      {coverUrl ? <img src={coverUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : pet.avatar || '🐶'}
+    <div
+      className="pet-avatar"
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        borderRadius: '50%',
+        overflow: 'hidden',
+        background: '#eef5f3',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: `${Math.round(18 * scale)}px`,
+        border: '3px solid #fff',
+        boxShadow: '0 8px 18px rgba(91, 69, 46, 0.15)',
+        flexShrink: 0,
+      }}
+    >
+      {coverUrl ? (
+        <img
+          src={coverUrl}
+          alt=""
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+          }}
+        />
+      ) : (
+        pet.avatar || '🐶'
+      )}
     </div>
   )
 }
@@ -349,7 +508,10 @@ function PetAvatar({ pet }: { pet: Pet }) {
 function useBlobUrl(blob?: Blob) {
   const [url, setUrl] = useState('')
   useEffect(() => {
-    if (!blob) { setUrl(''); return }
+    if (!blob) {
+      setUrl('')
+      return
+    }
     const next = URL.createObjectURL(blob)
     setUrl(next)
     return () => URL.revokeObjectURL(next)

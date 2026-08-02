@@ -18,6 +18,7 @@ const mockStores: Record<string, Map<any, any>> = {
   voices: new Map(),
   memories: new Map(),
   growth: new Map(),
+  media: new Map(),
 }
 
 const mockIDBRequest = (result: any) => {
@@ -54,7 +55,7 @@ const mockIDBTransaction = () => ({
 
 const mockIDBDatabase = {
   objectStoreNames: {
-    contains: (name: string) => ['pets', 'reminders', 'voices', 'memories', 'growth'].includes(name),
+    contains: (name: string) => ['pets', 'reminders', 'voices', 'memories', 'growth', 'media'].includes(name),
   },
   transaction: () => mockIDBTransaction(),
 }
@@ -136,7 +137,7 @@ describe('Phase 0 Core Robustness Tests', () => {
     const petsBefore = await loadPets()
     expect(petsBefore.some((p) => p.id === 'pet-exist-1')).toBe(true)
 
-    // Create a mock backup content with completely different pet
+    // Create a mock backup content with completely different pet and media
     const backupJson = JSON.stringify({
       format: 'maohai-care-backup',
       version: 5,
@@ -148,12 +149,19 @@ describe('Phase 0 Core Robustness Tests', () => {
       voices: [],
       memories: [],
       growth: [],
+      media: [
+        {
+          id: 'media-imported-1',
+          metadata: { id: 'media-imported-1', petId: 'pet-imported-1' },
+          blob: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        }
+      ],
     })
 
     // Perform Restore
     await restoreBackup(backupJson)
 
-    // Verify existing pet is CLEARED, and only imported pet exists
+    // Verify existing pet is CLEARED, and only imported pet and media exists
     const petsAfter = await loadPets()
     expect(petsAfter.some((p) => p.id === 'pet-exist-1')).toBe(false) // Cleared!
     expect(petsAfter.some((p) => p.id === 'pet-imported-1')).toBe(true) // Restored!
