@@ -26,6 +26,10 @@ export type TimelineEmotionCategory =
   | 'ReminderCompleted'
   | 'ReminderMissed'
   | 'BackupCreated'
+  // Humanized Expanded Categories
+  | 'WeightRecord'
+  | 'FirstMemory'
+  | 'NoMemoriesToday'
 
 const TEMPLATES: Record<TimelineEmotionCategory, string> = {
   Birthday: '今天是 {name} 的生日！感謝又陪伴了彼此度過美好溫馨的一年。🎂',
@@ -55,6 +59,10 @@ const TEMPLATES: Record<TimelineEmotionCategory, string> = {
   ReminderCompleted: '守護足跡：日常照護提醒已完成！給 {name} 滿滿的關愛與陪伴。✓',
   ReminderMissed: '溫馨叮嚀：有一項關於 {name} 的日常照護提醒不小心錯過了。讓我們重新安排吧。⏰',
   BackupCreated: '安全守護：已成功建立這台手機的單機備份，{name} 的一世回憶安全無虞。💾',
+  // Humanized Added Templates
+  WeightRecord: '成長足跡：記錄下 {name} 的最新體重。穩定成長就是最棒的事。⚖',
+  FirstMemory: '第一篇溫馨回憶：這是我們共同寫下的第一頁，珍藏最起初的感動。🌸',
+  NoMemoriesToday: '今天又是平靜安詳的一天。和 {name} 靠在一起，就是最溫馨的事。☕',
 }
 
 class TimelineMessageService {
