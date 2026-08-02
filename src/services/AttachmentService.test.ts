@@ -1,5 +1,6 @@
 import { describe, test, expect, vi, beforeAll, afterAll } from 'vitest'
 import { attachmentService } from './AttachmentService'
+import { sharedMediaService } from './SharedMediaService'
 
 beforeAll(() => {
   globalThis.URL.createObjectURL = vi.fn((_blob: Blob) => `blob:mock-url-${Math.random()}`)
@@ -84,5 +85,60 @@ describe('Guardian Attachment Foundation Service Tests', () => {
 
     attachmentService.revokePreviewUrl(url)
     expect(URL.revokeObjectURL).toHaveBeenCalledWith(url)
+  })
+
+  test('backward-compatibility wrapper delegates seamlessly to AttachmentService', () => {
+    const file = new File(['image-bytes'], 'ha-ji.png', { type: 'image/png' })
+    const validation = sharedMediaService.validateMedia(file)
+    expect(validation.valid).toBe(true)
+
+    const meta = sharedMediaService.createMetadata({
+      id: 'legacy-media-001',
+      petId: 'pet-a',
+      type: 'photo',
+      mimeType: 'image/png',
+      fileName: 'ha-ji.png',
+      fileSize: file.size,
+      source: 'camera',
+      context: 'abnormal-event',
+      entityType: 'abnormal-event',
+      entityId: 'event-100',
+    })
+
+    expect(meta.id).toBe('legacy-media-001')
+    expect(meta.petId).toBe('pet-a')
+    expect(meta.type).toBe('photo')
+    expect(meta.fileName).toBe('ha-ji.png')
+    expect(meta.fileSize).toBe(file.size)
+  })
+
+  test('multi-pet attachment isolation handles cross-pet separation safely', () => {
+    const metaPetA = attachmentService.createAttachmentMetadata({
+      id: 'media-a-1',
+      petId: 'pet-a',
+      type: 'photo',
+      mimeType: 'image/jpeg',
+      filename: 'file-a.jpg',
+      filesize: 500,
+      context: 'memories',
+      entityType: 'memory-entry',
+      entityId: 'entry-a',
+    })
+
+    const metaPetB = attachmentService.createAttachmentMetadata({
+      id: 'media-b-1',
+      petId: 'pet-b',
+      type: 'video',
+      mimeType: 'video/mp4',
+      filename: 'file-b.mp4',
+      filesize: 1500,
+      context: 'event-center',
+      entityType: 'abnormal-event',
+      entityId: 'entry-b',
+    })
+
+    expect(metaPetA.petId).toBe('pet-a')
+    expect(metaPetB.petId).toBe('pet-b')
+    expect(metaPetA.id).not.toBe(metaPetB.id)
   })
 })
