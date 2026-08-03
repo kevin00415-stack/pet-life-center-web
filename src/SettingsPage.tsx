@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CareReminder, GrowthRecord, MemoryEntry, Pet, VoiceClip } from './domain'
 import { getNotificationDiagnostics, scheduleTestNotification } from './notifications'
+import { supportedLocales, useTranslation } from './i18n/translations'
 
 type Props = { pets: Pet[]; reminders: CareReminder[]; memories: MemoryEntry[]; growthRecords: GrowthRecord[]; voices: VoiceClip[]; onBack: () => void; onExport: () => Promise<void>; onExportVetReport: () => void; onImport: (file?: File) => Promise<void>; notify: (text: string) => void }
 type Diagnostics = Awaited<ReturnType<typeof getNotificationDiagnostics>>
 
 export default function SettingsPage({ pets, reminders, memories, growthRecords, voices, onBack, onExport, onExportVetReport, onImport, notify }: Props) {
+  const { locale, changeLocale } = useTranslation()
   const [diagnostics, setDiagnostics] = useState<Diagnostics | null>(null)
   const [storage, setStorage] = useState<{ usage?: number; quota?: number }>({})
   const restoreInput = useRef<HTMLInputElement>(null)
@@ -29,6 +31,7 @@ export default function SettingsPage({ pets, reminders, memories, growthRecords,
   const acceptedCount = acceptanceItems.filter(([id]) => acceptance[id]).length
 
   return <section className="settings-page"><header className="timeline-header"><button onClick={onBack}>‹</button><div><span className="eyebrow">LOCAL APP SETTINGS</span><h1>設定與資料保護</h1><p>掌握手機裡的資料、通知與完整備份。</p></div></header>
+    <section className="settings-block"><div className="settings-title"><div><span className="eyebrow">LANGUAGE & REGION</span><h2>{locale === 'zh-TW' ? '語言與地區' : 'Language & region'}</h2></div></div><label style={{display:'grid',gap:'8px',fontWeight:700}}>{locale === 'zh-TW' ? '顯示語言' : 'Display language'}<select value={locale} onChange={(event)=>changeLocale(event.target.value as 'zh-TW'|'en-US')} style={{minHeight:'46px',border:'1px solid var(--line)',borderRadius:'12px',padding:'0 12px',background:'#fff'}}>{supportedLocales.map((item)=><option key={item.code} value={item.code}>{item.nativeLabel} · {item.label}</option>)}</select></label><p className="backup-explain">{locale === 'zh-TW' ? '首次使用會依手機語言自動選擇；手動選擇會保存在這台裝置。日期、時間與數字將依語言顯示，健康資料仍以標準單位保存。' : 'The first launch follows your device language. Your manual choice is saved on this device. Dates, times, and numbers follow the locale while health values remain stored in canonical units.'}</p><a href="/website" style={{color:'var(--brand)',fontWeight:800}}>{locale === 'zh-TW' ? '前往毛孩生活中心官網' : 'Visit the Pet Life Center website'}</a></section>
     <section className="local-status"><i>⌂</i><div><b>單機資料模式</b><p>不需登入；照片、健康、提醒與錄音預設不離開這台裝置。</p></div><em>本機</em></section>
     <section className="settings-block"><div className="settings-title"><div><span className="eyebrow">LOCAL DATA</span><h2>本機資料摘要</h2></div><strong>{mediaMb} MB<small>媒體檔案</small></strong></div><div className="data-counts"><div><b>{pets.length}</b><small>毛孩</small></div><div><b>{reminders.length}</b><small>提醒</small></div><div><b>{memories.length}</b><small>回憶</small></div><div><b>{photoCount}</b><small>照片</small></div><div><b>{growthRecords.length}</b><small>成長</small></div><div><b>{voices.length}</b><small>錄音</small></div></div>{storage.quota && <div className="device-storage"><span>App／瀏覽器儲存用量</span><b>{((storage.usage || 0) / 1024 / 1024).toFixed(1)} MB / {(storage.quota / 1024 / 1024).toFixed(0)} MB</b><i><em style={{ width: `${Math.min(100, (storage.usage || 0) / storage.quota * 100)}%` }} /></i></div>}</section>
     <section className="settings-block"><div className="settings-title"><div><span className="eyebrow">REMINDER CHECK</span><h2>通知與鬧鐘</h2></div></div><div className="diagnostic-list"><div><span><b>本機通知權限</b><small>吃藥、吃飯、看診與照護</small></span><em className={diagnostics?.permission === 'granted' ? 'ok' : ''}>{permissionText}</em></div><div><span><b>Android 精確鬧鐘</b><small>讓提醒更接近設定時間</small></span><em className={diagnostics?.exactAlarm === 'granted' || diagnostics?.exactAlarm === 'not-required' ? 'ok' : ''}>{exactText}</em></div></div><button className="test-notification" onClick={() => void testNotification()}>測試10秒後通知</button></section>

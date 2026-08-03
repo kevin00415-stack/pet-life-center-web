@@ -66,7 +66,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
   const galleryInputRef = useRef<HTMLInputElement>(null)
 
   // 1. Load comparisons and IndexedDB media on mount or when pet changes
-  const loadAllData = async () => {
+  const loadAllData = React.useCallback(async () => {
     if (!pet) return
     try {
       // Load comparisons
@@ -97,7 +97,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
     } catch (err) {
       console.error('Failed to load media or comparisons', err)
     }
-  }
+  }, [pet])
 
   useEffect(() => {
     loadAllData()
@@ -108,7 +108,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
         return {}
       })
     }
-  }, [pet?.id])
+  }, [loadAllData])
 
   // Handle uploading new media item directly in this view
   const handleAddMedia = async (e: React.ChangeEvent<HTMLInputElement>, preferredType?: 'photo' | 'video') => {
