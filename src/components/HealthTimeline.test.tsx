@@ -190,7 +190,7 @@ describe('HealthTimeline Component - Integration & Story Mode rendering tests', 
     )
 
     // Verify "On This Day" spotlight card renders
-    expect(html).toContain('當年的今天 (On This Day)')
+    expect(html).toContain('當年的今天')
     expect(html).toContain('當年的珍貴歷史點滴')
     expect(html).toContain('年的今天')
   })

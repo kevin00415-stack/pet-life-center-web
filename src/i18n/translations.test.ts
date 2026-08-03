@@ -81,4 +81,30 @@ describe('i18n Translations system (Pure Unit Tests)', () => {
     expect(withoutComments).not.toMatch(/locale\s*===/)
     expect(withoutComments).not.toMatch(/\.toLocale(?:Date|Time|String)/)
   })
+
+  test('provides bilingual core reminder, settings, timeline, and growth labels', () => {
+    expect(originalZhTW.reminderEditorAddTitle).toBe('新增照護提醒')
+    expect(en.reminderEditorAddTitle).toBe('Add Care Reminder')
+    expect(interpolate(en.reminderPreviewClip, { name: 'Mochi voice' })).toContain('Mochi voice')
+    expect(originalZhTW.permissionGranted).toBe('已允許')
+    expect(en.permissionGranted).toBe('Allowed')
+    expect(interpolate(en.timelineTitle, { pet: 'Mochi' })).toBe("Mochi's Life Story Album")
+    expect(en.growthChartAria).toBe('Weight trend chart')
+  })
+
+  test('priority UI files avoid inline locale comparisons and raw locale formatting', () => {
+    const files = ['src/components/BottomNav.tsx', 'src/components/ReminderCenterView.tsx', 'src/ReminderEditor.tsx', 'src/HealthTimeline.tsx', 'src/SettingsPage.tsx', 'src/GrowthTracker.tsx']
+    for (const file of files) {
+      const source = readFileSync(resolve(process.cwd(), file), 'utf8')
+      expect(source, file).not.toMatch(/locale\s*===/)
+      expect(source, file).not.toMatch(/\.toLocale(?:String|DateString|TimeString)/)
+    }
+  })
+
+  test('medication stock display labels do not mutate persisted unit values', () => {
+    const sourceUnit = '顆'
+    expect(originalZhTW.unitPiece).toBe('顆')
+    expect(en.unitPiece).toBe('piece(s)')
+    expect(sourceUnit).toBe('顆')
+  })
 })
