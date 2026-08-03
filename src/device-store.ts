@@ -129,6 +129,17 @@ export async function deletePetData(petId: string) {
     ...voiceIds.map((id) => remove('voices', id)),
     ...petMedia.map((item) => remove('media', item.id)),
   ])
+
+  // Clean up pet-specific local storage logs to prevent orphaned data leaks
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(`maohai-senior-care-${petId}`)
+      localStorage.removeItem(`maohai-visual-comparisons-${petId}`)
+      localStorage.removeItem(`maohai-abnormal-events-${petId}`)
+    }
+  } catch (e) {
+    console.error('Failed to clean up localStorage on pet deletion', e)
+  }
 }
 export const loadReminders = () => getAll<CareReminder>('reminders')
 export const saveReminder = (reminder: CareReminder) => put('reminders', reminder)

@@ -3,6 +3,24 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { BottomNav } from './BottomNav'
 
+// Mock useTranslation hook to prevent standard React state hooks from being invoked when testing the component directly as a function
+vi.mock('../i18n/translations', () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const labels: Record<string, string> = {
+        navToday: '今日',
+        navJournal: '紀錄',
+        navCommunity: '社群',
+        navHealth: '健康',
+        navReminders: '提醒',
+      }
+      return labels[key] || key
+    },
+    locale: 'zh-TW',
+    changeLocale: () => {},
+  }),
+}))
+
 describe('BottomNav Component (Server-side Markup & Interaction Verification)', () => {
   test('renders all 5 expected navigation items and labels correctly', () => {
     const html = renderToStaticMarkup(

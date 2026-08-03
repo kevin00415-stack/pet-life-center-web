@@ -37,32 +37,17 @@ export function setLocale(locale: LocaleType) {
 }
 
 export function useTranslation() {
-  let locale: LocaleType = currentLocale
-  let setLocaleState: (next: LocaleType) => void = () => {}
+  const [locale, setLocaleState] = useState<LocaleType>(currentLocale)
 
-  try {
-    const [state, setState] = useState<LocaleType>(currentLocale)
-    locale = state
-    setLocaleState = setState
-  } catch (e) {
-    // Called outside React render context (e.g. raw function call in tests)
-  }
-
-  try {
-    useEffect(() => {
-      const handleLocaleChange = (nextLocale: LocaleType) => {
-        try {
-          setLocaleState(nextLocale)
-        } catch (e) {}
-      }
-      listeners.add(handleLocaleChange)
-      return () => {
-        listeners.delete(handleLocaleChange)
-      }
-    }, [])
-  } catch (e) {
-    // Called outside React context
-  }
+  useEffect(() => {
+    const handleLocaleChange = (nextLocale: LocaleType) => {
+      setLocaleState(nextLocale)
+    }
+    listeners.add(handleLocaleChange)
+    return () => {
+      listeners.delete(handleLocaleChange)
+    }
+  }, [])
 
   const t = (key: TranslationKeys): string => {
     const dict = locale === 'en' ? en : zhTW

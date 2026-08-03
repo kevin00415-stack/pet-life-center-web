@@ -5,6 +5,7 @@ import {
   Warning,
 } from '@phosphor-icons/react'
 import type { Pet, CareReminder } from '../domain'
+import { localDateKey } from '../domain'
 
 interface SeniorCareViewProps {
   pet?: Pet
@@ -36,8 +37,7 @@ export default function SeniorCareView({
   onBack,
 }: SeniorCareViewProps) {
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    const today = new Date()
-    return today.toISOString().split('T')[0]
+    return localDateKey()
   })
 
   // State for the current day's observation
