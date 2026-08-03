@@ -11,8 +11,9 @@ import {
   SpeakerHigh,
 } from '@phosphor-icons/react'
 import type { Pet, CareReminder, ReminderKind, VoiceClip } from '../domain'
-import { kindLabels, repeatLabels } from '../domain'
 import { classifyReminderOccurrences, type ClassifiedOccurrence, type ReminderCenterTab } from '../services/ReminderSelectorService'
+import { formatDate, formatTime } from '../i18n/formatters'
+import { interpolate, useTranslation } from '../i18n/translations'
 
 interface ReminderCenterViewProps {
   pets: Pet[]
@@ -30,15 +31,6 @@ interface ReminderCenterViewProps {
   onEditExisting: (reminder: CareReminder) => void
 }
 
-const KIND_FILTERS: { key: ReminderKind | 'all'; label: string; icon: string }[] = [
-  { key: 'all', label: '全部類型', icon: '📋' },
-  { key: 'medication', label: '吃藥', icon: '💊' },
-  { key: 'feeding', label: '吃飯', icon: '🥣' },
-  { key: 'vet', label: '看醫生', icon: '🏥' },
-  { key: 'vaccine', label: '疫苗', icon: '💉' },
-  { key: 'care', label: '日常照護', icon: '♡' },
-]
-
 export default function ReminderCenterView({
   pets,
   pet,
@@ -54,6 +46,12 @@ export default function ReminderCenterView({
   onCreateNew,
   onEditExisting,
 }: ReminderCenterViewProps) {
+  const { t, locale } = useTranslation()
+  const kindLabels = { medication: t('kindMedication'), feeding: t('kindFeeding'), vet: t('kindVet'), vaccine: t('kindVaccine'), care: t('kindCare') }
+  const repeatLabels = { once: t('repeatOnce'), daily: t('repeatDaily'), weekly: t('repeatWeekly'), monthly: t('repeatMonthly'), quarterly: t('repeatQuarterly'), yearly: t('repeatYearly') }
+  const kindFilters: { key: ReminderKind | 'all'; label: string; icon: string }[] = [
+    { key: 'all', label: t('reminderAllKinds'), icon: '📋' }, { key: 'medication', label: kindLabels.medication, icon: '💊' }, { key: 'feeding', label: kindLabels.feeding, icon: '🥣' }, { key: 'vet', label: kindLabels.vet, icon: '🏥' }, { key: 'vaccine', label: kindLabels.vaccine, icon: '💉' }, { key: 'care', label: kindLabels.care, icon: '♡' },
+  ]
   const [activeTab, setActiveTab] = useState<ReminderCenterTab>('today')
   const [activeKind, setActiveKind] = useState<ReminderKind | 'all'>('all')
 
@@ -119,14 +117,13 @@ export default function ReminderCenterView({
     return (
       <div style={{ padding: '24px', textAlign: 'center', background: '#fbf8f3', minHeight: '100vh', color: '#173f3b' }}>
         <header style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer' }} aria-label="返回">
+          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer' }} aria-label={t('back')}>
             <ArrowLeft size={24} color="#173f3b" />
           </button>
-          <h1 style={{ margin: 0, fontSize: '20px' }}>提醒中心</h1>
+          <h1 style={{ margin: 0, fontSize: '20px' }}>{t('reminderCenterTitle')}</h1>
         </header>
         <div style={{ background: '#fff', borderRadius: '16px', padding: '32px 16px', border: '1px solid #f2e9dc' }}>
-          <h3>⚠️ 未選擇毛孩</h3>
-          <p>請先回到今日看板建立或點選一隻毛孩檔案。</p>
+          <h3>⚠️ {t('reminderNoPetTitle')}</h3><p>{t('reminderNoPetBody')}</p>
         </div>
       </div>
     )
@@ -144,14 +141,14 @@ export default function ReminderCenterView({
   const filteredList = getFilteredList(activeTab)
 
   const handleDeleteReminder = async (id: string) => {
-    if (window.confirm('確定要永久刪除此項照護提醒嗎？此動作將會一併取消後續的所有預排日程。')) {
+    if (window.confirm(t('reminderConfirmDelete'))) {
       await onDelete(id)
     }
   }
 
   const handleSnoozeMinutes = async (occ: ClassifiedOccurrence, minutes: number) => {
     await onSnooze(occ.reminder, occ.occurrence, minutes)
-    alert(`🕒 已成功延後提醒 ${minutes} 分鐘。`)
+    alert(`🕒 ${interpolate(t('reminderSnoozeSuccess'), { minutes })}`)
   }
 
   const renderSnoozeMenu = (occ: ClassifiedOccurrence) => {
@@ -161,19 +158,19 @@ export default function ReminderCenterView({
           onClick={() => handleSnoozeMinutes(occ, 10)}
           style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #dce7e4', background: '#fdf8f0', color: '#8c6020', fontSize: '11px', cursor: 'pointer', whiteSpace: 'nowrap' }}
         >
-          延後 10 分
+          {t('reminderSnooze10')}
         </button>
         <button
           onClick={() => handleSnoozeMinutes(occ, 30)}
           style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #dce7e4', background: '#fdf8f0', color: '#8c6020', fontSize: '11px', cursor: 'pointer', whiteSpace: 'nowrap' }}
         >
-          延後 30 分
+          {t('reminderSnooze30')}
         </button>
         <button
           onClick={() => handleSnoozeMinutes(occ, 60)}
           style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #dce7e4', background: '#fdf8f0', color: '#8c6020', fontSize: '11px', cursor: 'pointer', whiteSpace: 'nowrap' }}
         >
-          延後 1 小時
+          {t('reminderSnooze60')}
         </button>
       </div>
     )
@@ -184,13 +181,13 @@ export default function ReminderCenterView({
 
       {/* Header and Back Navigation */}
       <header style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }} aria-label="返回今日看板">
+        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }} aria-label={t('reminderBackDashboard')}>
           <ArrowLeft size={24} color="#173f3b" />
         </button>
         <div>
           <span style={{ fontSize: '11px', color: '#d3a665', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>REMINDER CENTER</span>
           <h1 style={{ margin: 0, fontSize: '22px', color: '#173f3b', fontWeight: 'bold' }}>
-            {pet.name} 的守護提醒中心
+            {interpolate(t('reminderCenterPetTitle'), { pet: pet.name })}
           </h1>
         </div>
       </header>
@@ -199,7 +196,7 @@ export default function ReminderCenterView({
       {pets.length > 1 && (
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>
-            切換守護對象 (Switch Pet)
+            {t('reminderSwitchPet')}
           </label>
           <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px' }}>
             {pets.map((p) => {
@@ -233,14 +230,7 @@ export default function ReminderCenterView({
         {(['today', 'overdue', 'upcoming', 'completed', 'skipped', 'all'] as ReminderCenterTab[]).map((tab) => {
           const isSelected = activeTab === tab
           const count = classified[tab].length
-          const tabLabel: Record<string, string> = {
-            today: '今天',
-            overdue: '逾期未完',
-            upcoming: '未來預排',
-            completed: '已完成',
-            skipped: '已略過',
-            all: '全部日程',
-          }
+          const tabLabel: Record<ReminderCenterTab, string> = { today: t('reminderTabToday'), overdue: t('reminderTabOverdue'), upcoming: t('reminderTabUpcoming'), completed: t('reminderTabCompleted'), skipped: t('reminderTabSkipped'), all: t('reminderTabAll') }
 
           let badgeBg = '#f5f5f5'
           let badgeColor = '#5e746f'
@@ -283,7 +273,7 @@ export default function ReminderCenterView({
 
       {/* Reminder Category Filter Row */}
       <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '20px' }}>
-        {KIND_FILTERS.map((f) => {
+        {kindFilters.map((f) => {
           const isSelected = activeKind === f.key
           return (
             <button
@@ -309,7 +299,7 @@ export default function ReminderCenterView({
 
       {/* Quick Create Link Buttons */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-        <b style={{ fontSize: '15px' }}>📋 照護行程列表</b>
+        <b style={{ fontSize: '15px' }}>📋 {t('reminderScheduleList')}</b>
         <button
           onClick={() => onCreateNew('medication')}
           style={{
@@ -326,7 +316,7 @@ export default function ReminderCenterView({
             cursor: 'pointer',
           }}
         >
-          <Plus size={14} weight="bold" /> 新增提醒
+          <Plus size={14} weight="bold" /> {t('reminderAdd')}
         </button>
       </div>
 
@@ -334,9 +324,9 @@ export default function ReminderCenterView({
       {filteredList.length === 0 ? (
         <div style={{ background: '#fff', borderRadius: '16px', padding: '32px 16px', textAlign: 'center', border: '1px solid #f2e9dc', color: '#5e746f' }}>
           <Calendar size={36} color="#a0b2ae" style={{ marginBottom: '10px' }} />
-          <h3>沒有符合篩選條件的提醒項目</h3>
+          <h3>{t('reminderEmptyTitle')}</h3>
           <p style={{ margin: '6px 0 0 0', fontSize: '13px', color: '#809692' }}>
-            設定一些吃藥、吃飯、看醫生、疫苗或日常照護提醒，行程會自動排定在這裡。
+            {t('reminderEmptyBody')}
           </p>
         </div>
       ) : (
@@ -346,8 +336,8 @@ export default function ReminderCenterView({
             const isSkipped = occ.status === 'skipped'
             const isOverdue = occ.occurrence < new Date() && occ.status === 'missed'
 
-            const timeStr = occ.occurrence.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })
-            const dateStr = occ.occurrence.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short' })
+            const timeStr = formatTime(occ.occurrence, locale)
+            const dateStr = formatDate(occ.occurrence, locale, { month: 'numeric', day: 'numeric', weekday: 'short' })
 
             // Look up loop audio clip reference
             const voiceId = occ.reminder.voiceClipId
@@ -377,17 +367,17 @@ export default function ReminderCenterView({
                       </span>
                       {isOverdue && (
                         <span style={{ fontSize: '11px', background: '#fdf2f0', color: '#e05a47', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
-                          ⚠️ 逾期
+                          ⚠️ {t('reminderStatusOverdue')}
                         </span>
                       )}
                       {isCompleted && (
                         <span style={{ fontSize: '11px', background: '#eef5f3', color: '#173f3b', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
-                          ✓ 已完成
+                          ✓ {t('reminderStatusCompleted')}
                         </span>
                       )}
                       {isSkipped && (
                         <span style={{ fontSize: '11px', background: '#f5f5f5', color: '#a0b2ae', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
-                          已略過
+                          {t('reminderStatusSkipped')}
                         </span>
                       )}
                     </div>
@@ -401,14 +391,14 @@ export default function ReminderCenterView({
                     <button
                       onClick={() => onEditExisting(occ.reminder)}
                       style={{ padding: '6px', borderRadius: '8px', border: '1px solid #dce7e4', background: '#fff', color: '#173f3b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      title="編輯提醒項目"
+                      title={t('reminderEditTitle')}
                     >
                       <PencilSimple size={16} />
                     </button>
                     <button
                       onClick={() => handleDeleteReminder(occ.reminder.id)}
                       style={{ padding: '6px', borderRadius: '8px', border: '1px solid #f9dedb', background: '#fff', color: '#e05a47', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      title="刪除提醒"
+                      title={t('reminderDeleteTitle')}
                     >
                       <Trash size={16} />
                     </button>
@@ -432,7 +422,7 @@ export default function ReminderCenterView({
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fcfbf7', padding: '8px 12px', borderRadius: '12px', border: '1px solid #f2e9dc' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#8c6020' }}>
                       <SpeakerHigh size={16} />
-                      <span>🎵 專屬語音：{voiceClip.name} (Loop 至少30秒)</span>
+                      <span>🎵 {interpolate(t('reminderCustomAudio'), { name: voiceClip.name })}</span>
                     </div>
                     <button
                       onClick={() => isAudioPlaying ? stopPreview() : playVoice(voiceClip)}
@@ -451,7 +441,7 @@ export default function ReminderCenterView({
                       }}
                     >
                       {isAudioPlaying ? <Pause size={12} weight="fill" /> : <Play size={12} weight="fill" />}
-                      {isAudioPlaying ? '停止' : '試聽'}
+                      {isAudioPlaying ? t('reminderStop') : t('reminderPreview')}
                     </button>
                   </div>
                 )}
@@ -478,7 +468,7 @@ export default function ReminderCenterView({
                           gap: '6px',
                         }}
                       >
-                        <CheckCircle size={16} weight="fill" /> 標記完成
+                        <CheckCircle size={16} weight="fill" /> {t('reminderMarkComplete')}
                       </button>
                       <button
                         onClick={() => onSkip(occ.reminder, occ.occurrence)}
@@ -494,7 +484,7 @@ export default function ReminderCenterView({
                           cursor: 'pointer',
                         }}
                       >
-                        本次略過
+                        {t('btnSkip')}
                       </button>
                     </div>
 

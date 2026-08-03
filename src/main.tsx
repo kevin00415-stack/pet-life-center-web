@@ -5,6 +5,7 @@ import App from './App.tsx'
 import { initializeAudioCoordination } from './audio-coordination'
 import PublicWebsite from './public-site/PublicWebsite'
 import { getLocale } from './i18n/translations'
+import { initializeTheme } from './theme/theme'
 
 void initializeAudioCoordination()
 
@@ -17,6 +18,7 @@ if ('serviceWorker' in navigator) {
 }
 
 document.documentElement.lang = getLocale()
+initializeTheme()
 const isPublicWebsite = window.location.pathname.replace(/\/$/, '') === '/website'
 
 createRoot(document.getElementById('root')!).render(
