@@ -87,7 +87,7 @@ describe('SeniorCareView Component Tests', () => {
     )
 
     expect(html).toContain('5. 歷史狀況追蹤')
-    expect(html).toContain('2026-07-31')
+    expect(html).toContain('2026年7月31日')
     expect(html).toContain('生理指標：')
     expect(html).toContain('今天喝水需要留意，但走路非常良好！')
   })

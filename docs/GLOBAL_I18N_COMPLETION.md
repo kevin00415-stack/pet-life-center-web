@@ -2,63 +2,43 @@
 
 更新日期：2026-08-04
 
-## 本批已遷移
+## 完成範圍
 
-- `App.tsx`、`CareHomeView.tsx`、`CareCalendar.tsx`、`VetVisitPanel.tsx`（整合前已完成並保留）
-- `BottomNav.tsx`
-- `ReminderCenterView.tsx`
-- `ReminderEditor.tsx`
-- `SettingsPage.tsx`
-- `HealthTimeline.tsx` 的頁面框架、分類、日期時間、空狀態與 ARIA
-- `GrowthTracker.tsx`
-- `MemoriesPage.tsx`、`PetEditor.tsx`（部分已完成）
+本次指定的核心與最終批次已完成 zh-TW／en-US 介面遷移：App、CareHome、Care Calendar、Vet Visit、Bottom Navigation、Reminder Center、Reminder Editor、Settings、Health Timeline、Growth & Weight、Memories、Pet Editor、Senior Care、Visual Comparison、Event／Attachment UI、Veterinary PDF、Community UI 與 Public Website。
 
-## 鍵值與格式策略
+指定畫面檔案完成率為 **100%（19/19）**。剩餘含中文來源僅為允許排除的使用者／示例內容、註解、測試 fixture，以及為相容既有資料而保留的持久化列舉值；顯示時皆透過 UI-boundary mapping 轉譯。
 
-- 使用用途導向的語意鍵，例如 `reminderEditorAddTitle`、`settingsBackupRestore`、`timelineEmptyTitle`。
-- 相同語意重用共用鍵，例如 `back`、`close`、`saving`、`dateLabel`。
-- 動態文字使用 `interpolate`，不拼接介面語句。
-- 日期、時間、數字與體重使用 `formatDate`、`formatTime`、`formatNumber`、`formatWeight`。
-- 持久化的提醒種類、週期、庫存單位與狀態維持原值；只在 UI 邊界映射翻譯。
-- 毛孩名稱、提醒標題、日記、備註、藥名及其他使用者輸入內容不翻譯、不改寫。
+## 實作原則與資料保護
 
-## 精準掃描結果
+- 使用穩定語意鍵與 zh-TW 權威 fallback。
+- 日期、時間、數字與單位使用共用 locale formatter。
+- 未翻譯或改寫毛孩名稱、日記、提醒標題、藥名、備註、照片／影片文字等使用者內容。
+- 回憶健康選項、提醒種類、週期、狀態及事件預設來源值維持原始儲存值，只在畫面邊界映射。
+- Veterinary PDF 依目前語系輸出標題、欄位、狀態、日期與單位，使用者輸入仍保持原文。
+- Protected Guardian engines、Attachment／Shared Media services、device-store、storage schema 與 backup format 均未變更。
 
-本輪指定的 11 個核心／相鄰畫面，初始掃描為 277 個含漢字行；目前剩 205 個，完成 72 個，依可重現的行級掃描計算為 **26.0%**。以畫面檔案計算，6/11 已達 UI 字串掃描通過或僅含允許的持久值，為 **54.5%**。
+## 混合語言與程式掃描
 
-允許排除：
+- 最終批次元件的 `locale ===`／`locale !==`：0。
+- 最終批次元件直接 `toLocaleDateString`／`toLocaleTimeString`／`toLocaleString`：0。
+- 公開網站語言切換透過 `alternateLocale`，不在元件內分支。
+- 社群示例貼文視為 mock／內容資料，不屬介面字串；不自動翻譯。
+- Protected `GuardianTodayService` 仍含既有 `toLocaleTimeString('zh-TW')`，依任務禁止修改服務，本輪未動；若該來源文字直接顯示於英文畫面，需在後續獨立核准工作於 UI boundary 補齊。
 
-- `ReminderEditor.tsx` 的 `顆／包／錠／毫升／克` 是既有持久化單位值，畫面標籤已由 i18n 顯示。
-- `HealthTimeline.tsx` 的中文只存在註解與舊資料前綴清理規則，不直接顯示。
-- 字典、測試資料、註解、使用者內容與未直接顯示的持久值不列入。
+## 驗證結果
 
-## 尚未完成
+- 測試：25 個檔案，131 項通過，0 失敗，0 skipped。
+- Production build：通過，0 error。
+- Lint：通過，0 error、0 warning。
+- `git diff --check`：通過；僅 Git 提示 Windows 下未來可能做 LF→CRLF 正規化，不是 diff error。
+- Bundle：主 JS 664.47 kB（gzip 192.87 kB），Vite 提示超過 500 kB。
 
-### P0
+## Viewport QA
 
-- `MemoriesPage.tsx` 尚有健康選項與部分日記呈現文字。
-- `PetEditor.tsx` 尚有少量錯誤訊息、標題與 placeholder。
-- Guardian 服務產生的中文敘述仍需在 Timeline／Today 的 UI 邊界建立穩定映射，服務本身不得修改。
-- 完整核心流程尚需 zh-TW／en-US 行動版手動操作驗證。
+程式建置與靜態響應式規則已驗證，但本輪工具未提供可可靠完成 390×844、tablet、desktop 三尺寸互動截圖與逐頁操作的瀏覽器自動化證據，因此不宣稱真機或完整視覺驗收通過。需在部署預覽或可用瀏覽器工作階段補驗：英文長字串、bottom navigation、modal、safe-area、橫向捲動、PDF 列印與 attachment controls。
 
-### P1
+## 風險分級
 
-- `SeniorCareView.tsx`
-- `VisualComparisonView.tsx`
-- `EventCenterView.tsx`（Attachment UI）
-- `vet-report.ts` 的可列印報告文字與日期格式
-- 社群與公開網站仍有 inline locale 判斷；不影響本機核心照護流程，但尚未符合全 App 完成條件。
-
-### P2
-
-- Production build 的主 bundle 超過 500 kB。依任務要求列為 post-i18n optimization，本輪不做 bundle splitting。
-
-## 版面 QA
-
-- 型別與 production build 已驗證。
-- 尚未完成 390 × 844、tablet、desktop 的瀏覽器視覺驗證，因此不宣稱真機或完整響應式驗收通過。
-- 待驗項目：英文長標籤換行、底部導覽、modal 寬度、safe-area、橫向捲動與 ARIA。
-
-## 資料與保護模組
-
-本輪未修改 Observation、Context、Insight、Case Journey、Guardian Today、Timeline Aggregation、Attachment、Shared Media、device-store、備份格式、儲存 schema 或持久化 enum 的內部邏輯。
+- P0：無已知編譯、測試或資料相容性阻塞。
+- P1：三種 viewport 的人工／瀏覽器逐頁視覺驗收尚未完成；Protected GuardianTodayService 產生文字的英文 UI-boundary 顯示需在實際核心流程驗收中特別確認。
+- P2：i18n 後主 bundle 超過 500 kB；依任務要求留待 post-i18n code-splitting optimization，本次不拆包。

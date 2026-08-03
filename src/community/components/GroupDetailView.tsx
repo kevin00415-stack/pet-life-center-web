@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { CaretLeft, Plus, CheckCircle, ShieldCheck } from '@phosphor-icons/react'
 import type { CommunityTopic } from '../community-types'
+import { interpolate, useTranslation } from '../../i18n/translations'
+import { formatDate } from '../../i18n/formatters'
 
 interface GroupPost {
   id: string
@@ -99,6 +101,7 @@ interface GroupDetailViewProps {
 }
 
 export function GroupDetailView({ topic, onBack }: GroupDetailViewProps) {
+  const { t, locale } = useTranslation()
   const [posts, setPosts] = useState<GroupPost[]>(() => {
     const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('community_group_posts') : null
     if (saved) {
@@ -128,7 +131,7 @@ export function GroupDetailView({ topic, onBack }: GroupDetailViewProps) {
   const handleCreatePost = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTitle.trim() || !newAuthor.trim() || !newContent.trim()) {
-      setFormError('所有欄位皆為必填！')
+      setFormError(t('communityRequiredError'))
       return
     }
 
@@ -167,7 +170,7 @@ export function GroupDetailView({ topic, onBack }: GroupDetailViewProps) {
             cursor: 'pointer',
             color: 'var(--brand)',
           }}
-          aria-label="返回社群列表"
+          aria-label={t('communityBack')}
         >
           <CaretLeft size={24} weight="bold" />
         </button>
@@ -183,11 +186,11 @@ export function GroupDetailView({ topic, onBack }: GroupDetailViewProps) {
           <span style={{ fontSize: '32px' }}>{topic.icon}</span>
           <div>
             <h3 style={{ margin: 0, fontSize: '18px', color: '#173f3b' }}>{topic.title}</h3>
-            <span style={{ fontSize: '12px', color: '#888' }}>{topic.members} 個成員</span>
+            <span style={{ fontSize: '12px', color: '#888' }}>{interpolate(t('communityMembers'), { count: topic.members })}</span>
           </div>
           {topic.moderator && (
             <span style={{ marginLeft: 'auto', fontSize: '11px', background: '#eef3f1', color: '#426f69', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '2px' }}>
-              <ShieldCheck size={14} weight="fill" /> {topic.moderator} 專業領袖
+              <ShieldCheck size={14} weight="fill" /> {interpolate(t('communityLeader'), { name: topic.moderator })}
             </span>
           )}
         </div>
@@ -196,7 +199,7 @@ export function GroupDetailView({ topic, onBack }: GroupDetailViewProps) {
 
       {/* Post List Section Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--ink)', fontWeight: 'bold' }}>討論貼文 ({groupPosts.length})</h3>
+        <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--ink)', fontWeight: 'bold' }}>{interpolate(t('communityPosts'), { count: groupPosts.length })}</h3>
         <button
           onClick={() => setShowCreateModal(true)}
           className="create-post-btn"
@@ -215,7 +218,7 @@ export function GroupDetailView({ topic, onBack }: GroupDetailViewProps) {
             boxShadow: '0 4px 12px rgba(111, 145, 167, 0.2)',
           }}
         >
-          <Plus size={16} weight="bold" /> 發表新文章
+          <Plus size={16} weight="bold" /> {t('communityCreatePost')}
         </button>
       </div>
 
@@ -236,7 +239,7 @@ export function GroupDetailView({ topic, onBack }: GroupDetailViewProps) {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--brand-dark)' }}>{post.author}</span>
-                <time style={{ fontSize: '11px', color: '#999' }}>{post.date}</time>
+                <time style={{ fontSize: '11px', color: '#999' }}>{formatDate(post.date, locale)}</time>
               </div>
               <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', color: 'var(--ink)', fontWeight: 'bold' }}>{post.title}</h4>
               <p style={{ margin: 0, fontSize: '14px', color: '#5e746f', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{post.content}</p>
@@ -244,7 +247,7 @@ export function GroupDetailView({ topic, onBack }: GroupDetailViewProps) {
           ))
         ) : (
           <div style={{ textAlign: 'center', padding: '40px 16px', color: '#999', background: '#fff', borderRadius: '16px', border: '1px dashed #e1d5c7' }}>
-            目前此群組尚無任何討論貼文，快來發表第一篇吧！
+            {t('communityEmptyPosts')}
           </div>
         )}
       </div>
@@ -260,17 +263,17 @@ export function GroupDetailView({ topic, onBack }: GroupDetailViewProps) {
             <header>
               <div>
                 <span>NEW DISCUSSION POST</span>
-                <h2>發表新貼文</h2>
+                <h2>{t('communityNewPost')}</h2>
               </div>
-              <button className="close" onClick={() => setShowCreateModal(false)} aria-label="關閉表單">×</button>
+              <button className="close" onClick={() => setShowCreateModal(false)} aria-label={t('communityCloseForm')}>×</button>
             </header>
 
             <form onSubmit={handleCreatePost} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
               <label>
-                作者暱稱 (必填)
+                {t('communityAuthor')}
                 <input
                   type="text"
-                  placeholder="例如：柴犬比比爸"
+                  placeholder={t('communityAuthorPlaceholder')}
                   value={newAuthor}
                   onChange={(e) => setNewAuthor(e.target.value)}
                   style={{
@@ -285,10 +288,10 @@ export function GroupDetailView({ topic, onBack }: GroupDetailViewProps) {
               </label>
 
               <label>
-                貼文標題 (必填)
+                {t('communityPostTitle')}
                 <input
                   type="text"
-                  placeholder="請輸入吸引人的標題"
+                  placeholder={t('communityPostTitlePlaceholder')}
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   style={{
@@ -303,9 +306,9 @@ export function GroupDetailView({ topic, onBack }: GroupDetailViewProps) {
               </label>
 
               <label>
-                貼文內容 (必填)
+                {t('communityPostContent')}
                 <textarea
-                  placeholder="請分享您的寶貴照護經驗或詢問問題..."
+                  placeholder={t('communityPostContentPlaceholder')}
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
                   style={{
@@ -346,7 +349,7 @@ export function GroupDetailView({ topic, onBack }: GroupDetailViewProps) {
                   gap: '8px',
                 }}
               >
-                <CheckCircle size={20} weight="fill" /> 發布貼文
+                <CheckCircle size={20} weight="fill" /> {t('communityPublishPost')}
               </button>
             </form>
           </div>

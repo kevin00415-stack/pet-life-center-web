@@ -6,6 +6,8 @@ import {
 } from '@phosphor-icons/react'
 import type { Pet, CareReminder } from '../domain'
 import { localDateKey } from '../domain'
+import { interpolate, useTranslation } from '../i18n/translations'
+import { formatDate, formatNumber, formatTime } from '../i18n/formatters'
 
 interface SeniorCareViewProps {
   pet?: Pet
@@ -36,6 +38,7 @@ export default function SeniorCareView({
   recordOccurrence,
   onBack,
 }: SeniorCareViewProps) {
+  const { t, locale } = useTranslation()
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     return localDateKey()
   })
@@ -170,7 +173,7 @@ export default function SeniorCareView({
     }
     setHistory(updatedHistory)
     localStorage.setItem(storageKey, JSON.stringify(updatedHistory))
-    alert('高齡生理觀察紀錄已保存')
+    alert(t('seniorSaved'))
   }
 
   // Count "Needs Attention" fields
@@ -193,16 +196,7 @@ export default function SeniorCareView({
   const sortedDates = Object.keys(history).sort((a, b) => b.localeCompare(a))
 
   const metricsList = [
-    { key: 'appetite', label: '食慾狀況' },
-    { key: 'water', label: '每日飲水' },
-    { key: 'energy', label: '精神活力' },
-    { key: 'walking', label: '行走能力' },
-    { key: 'sleep', label: '睡眠品質' },
-    { key: 'urination', label: '排尿狀況' },
-    { key: 'defecation', label: '排便狀況' },
-    { key: 'breathing', label: '呼吸頻率' },
-    { key: 'vomiting', label: '嘔吐噁心' },
-    { key: 'pain', label: '疼痛觀察' },
+    { key: 'appetite', label: t('seniorMetricAppetite') }, { key: 'water', label: t('seniorMetricWater') }, { key: 'energy', label: t('seniorMetricEnergy') }, { key: 'walking', label: t('seniorMetricWalking') }, { key: 'sleep', label: t('seniorMetricSleep') }, { key: 'urination', label: t('seniorMetricUrination') }, { key: 'defecation', label: t('seniorMetricDefecation') }, { key: 'breathing', label: t('seniorMetricBreathing') }, { key: 'vomiting', label: t('seniorMetricVomiting') }, { key: 'pain', label: t('seniorMetricPain') },
   ] as const
 
   const getMedTitleFromKey = (key: string) => {
@@ -211,28 +205,28 @@ export default function SeniorCareView({
     if (match) {
       return match.reminder.title
     }
-    return `提醒項目 (${reminderId})`
+    return interpolate(t('seniorReminderFallback'), { id: reminderId })
   }
 
   return (
     <div className="senior-care-container" style={{ padding: '16px', paddingBottom: '90px', background: '#fbf8f3', minHeight: '100vh', textAlign: 'left' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}>
+        <button onClick={onBack} aria-label={t('back')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}>
           <ArrowLeft size={24} color="#173f3b" />
         </button>
         <div>
           <span style={{ fontSize: '11px', color: '#d3a665', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>LIFE PASSPORT</span>
           <h1 style={{ margin: 0, fontSize: '22px', color: '#173f3b', fontWeight: 'bold' }}>
-            {pet?.name || '毛孩'}的高齡照護中心
+            {interpolate(t('seniorTitle'), { pet: pet?.name || t('genericPet') })}
           </h1>
         </div>
       </header>
 
       {/* Intro info box */}
       <div style={{ background: '#edf4f2', borderRadius: '14px', padding: '16px', marginBottom: '20px', color: '#2b4d45', fontSize: '14px', lineHeight: '1.6' }}>
-        💡 <b>高齡照護宗旨：</b>幫助飼主每日細緻觀察老化徵兆，進行早期異變發現與溫馨照護。
+        💡 <b>{t('seniorPurposeTitle')}</b>{t('seniorPurposeBody')}
         <div style={{ fontSize: '12px', color: '#5e746f', marginTop: '6px' }}>
-          ⚠️ 本系統僅作日常觀察輔助，不可作為診斷工具，亦無法取代獸醫專業建議。
+          ⚠️ {t('seniorDisclaimer')}
         </div>
       </div>
 
@@ -240,7 +234,7 @@ export default function SeniorCareView({
       <div style={{ background: '#fff', borderRadius: '16px', padding: '16px', border: '1px solid #f2e9dc', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 12px rgba(111, 78, 55, 0.03)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Calendar size={20} color="#d3a665" />
-          <b style={{ fontSize: '15px', color: '#173f3b' }}>選擇觀察日期：</b>
+          <b style={{ fontSize: '15px', color: '#173f3b' }}>{t('seniorSelectDate')}</b>
         </div>
         <input
           type="date"
@@ -256,14 +250,13 @@ export default function SeniorCareView({
           <Warning size={32} color="#e05a47" weight="fill" style={{ flexShrink: 0 }} />
           <div>
             <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', color: '#8c2416', fontWeight: 'bold' }}>
-              🚨 重要照護警示
+              🚨 {t('seniorWarningTitle')}
             </h3>
             <p style={{ margin: 0, fontSize: '14px', color: '#6d1d11', lineHeight: '1.5' }}>
-              「{pet?.name}」今天有 <b>{attentionFields.length}</b> 項指標被標記為<b>「需要留意」</b>。
-              指標異常可能代表毛孩身體正感到不適或有早期健康異變。
+              {interpolate(t('seniorWarningBody'), { pet: pet?.name || t('genericPet'), count: formatNumber(attentionFields.length, locale) })}
             </p>
             <p style={{ margin: '10px 0 0 0', fontSize: '14px', color: '#e05a47', fontWeight: 'bold' }}>
-              💡 建議：建議您盡快與您的獸醫診所聯絡，尋求專業健康檢查與醫療諮詢。
+              💡 {t('seniorWarningAction')}
             </p>
           </div>
         </div>
@@ -272,7 +265,7 @@ export default function SeniorCareView({
       {/* 1. Daily Observation Section */}
       <section style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '18px', color: '#173f3b', marginBottom: '14px', borderLeft: '4px solid #d3a665', paddingLeft: '8px', fontWeight: 'bold' }}>
-          1. 每日生理狀況觀察
+          {t('seniorDailyObservation')}
         </h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -298,15 +291,15 @@ export default function SeniorCareView({
                     let activeBg = '#eef5f3'
                     let activeColor = '#173f3b'
                     let activeBorder = '#173f3b'
-                    let labelText = '良好'
+                    let labelText = t('seniorStatusGood')
 
                     if (option === 'normal') {
-                      labelText = '正常'
+                      labelText = t('seniorStatusNormal')
                       activeBg = '#fdf8f0'
                       activeColor = '#8c6020'
                       activeBorder = '#d3a665'
                     } else if (option === 'attention') {
-                      labelText = '留意'
+                      labelText = t('seniorStatusAttentionShort')
                       activeBg = '#fdf2f0'
                       activeColor = '#9e3224'
                       activeBorder = '#e05a47'
@@ -342,13 +335,13 @@ export default function SeniorCareView({
       {/* 2. Care Notes Section */}
       <section style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '18px', color: '#173f3b', marginBottom: '14px', borderLeft: '4px solid #d3a665', paddingLeft: '8px', fontWeight: 'bold' }}>
-          2. 每日照護備忘錄
+          {t('seniorDailyNotes')}
         </h2>
         <div style={{ background: '#fff', borderRadius: '16px', padding: '16px', border: '1px solid #f2e9dc', boxShadow: '0 4px 12px rgba(111, 78, 55, 0.03)' }}>
           <textarea
             value={observation.notes}
             onChange={handleNotesChange}
-            placeholder="例如：今天散步走得比較慢一些、咳嗽了兩次、早餐沒有完全吃完..."
+            placeholder={t('seniorNotesPlaceholder')}
             style={{
               width: '100%',
               minHeight: '100px',
@@ -369,12 +362,12 @@ export default function SeniorCareView({
       {/* 3. Medication Tracking Section */}
       <section style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '18px', color: '#173f3b', marginBottom: '14px', borderLeft: '4px solid #d3a665', paddingLeft: '8px', fontWeight: 'bold' }}>
-          3. 今日服藥進度
+          {t('seniorMedicationProgress')}
         </h2>
         <div style={{ background: '#fff', borderRadius: '16px', padding: '16px', border: '1px solid #f2e9dc', boxShadow: '0 4px 12px rgba(111, 78, 55, 0.03)' }}>
           {todayMedication.length === 0 ? (
             <div style={{ color: '#5e746f', fontSize: '14px', textAlign: 'center', padding: '12px 0' }}>
-              今天沒有需要服用的藥品提醒。
+              {t('seniorNoMedication')}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -389,7 +382,7 @@ export default function SeniorCareView({
                         {item.reminder.title}
                       </span>
                       <span style={{ fontSize: '12px', color: '#5e746f' }}>
-                        🕒 {item.occurrence.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                        🕒 {formatTime(item.occurrence, locale, { hour: '2-digit', minute: '2-digit', hour12: false })}
                       </span>
                     </div>
 
@@ -406,7 +399,7 @@ export default function SeniorCareView({
                           fontSize: '13px',
                         }}
                       >
-                        已服用
+                        {t('seniorMedicationTaken')}
                       </button>
                       <button
                         onClick={() => handleMedToggle(item.reminder, item.occurrence, 'skipped')}
@@ -420,7 +413,7 @@ export default function SeniorCareView({
                           fontSize: '13px',
                         }}
                       >
-                        略過
+                        {t('seniorSkipped')}
                       </button>
                       <button
                         onClick={() => handleMedToggle(item.reminder, item.occurrence, 'pending')}
@@ -434,7 +427,7 @@ export default function SeniorCareView({
                           fontSize: '13px',
                         }}
                       >
-                        待確認
+                        {t('seniorPending')}
                       </button>
                     </div>
                   </div>
@@ -462,18 +455,18 @@ export default function SeniorCareView({
           marginBottom: '32px',
         }}
       >
-        儲存今日生理狀況與照護記錄
+        {t('seniorSaveToday')}
       </button>
 
       {/* 5. Historical Timeline */}
       <section>
         <h2 style={{ fontSize: '18px', color: '#173f3b', marginBottom: '14px', borderLeft: '4px solid #d3a665', paddingLeft: '8px', fontWeight: 'bold' }}>
-          5. 歷史狀況追蹤
+          {t('seniorHistoryTitle')}
         </h2>
 
         {sortedDates.length === 0 ? (
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', textAlign: 'center', border: '1px solid #f2e9dc', color: '#5e746f' }}>
-            還沒有任何高齡照護歷史紀錄。
+            {t('seniorHistoryEmpty')}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -500,7 +493,7 @@ export default function SeniorCareView({
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <b style={{ fontSize: '15px', color: '#173f3b' }}>📅 {date}</b>
+                    <b style={{ fontSize: '15px', color: '#173f3b' }}>📅 {formatDate(date, locale)}</b>
                     <span
                       style={{
                         fontSize: '12px',
@@ -511,12 +504,12 @@ export default function SeniorCareView({
                         color: isWarning ? '#e05a47' : '#173f3b',
                       }}
                     >
-                      {isWarning ? '⚠️ 需留意' : '良好'}
+                      {isWarning ? `⚠️ ${t('seniorStatusAttention')}` : t('seniorStatusGood')}
                     </span>
                   </div>
 
                   <div style={{ fontSize: '13px', color: '#5e746f', marginBottom: '8px' }}>
-                    <b>生理指標：</b>{goodCount} 項良好，{10 - goodCount - attentionCount} 項正常，{attentionCount} 項需留意
+                    <b>{t('seniorMetricsSummaryTitle')}</b>{interpolate(t('seniorMetricsSummary'), { good: formatNumber(goodCount, locale), normal: formatNumber(10 - goodCount - attentionCount, locale), attention: formatNumber(attentionCount, locale) })}
                   </div>
 
                   {hist.notes && (
@@ -541,8 +534,8 @@ export default function SeniorCareView({
         const normalCount = 10 - attentionCount - goodCount
 
         const savedTimestampStr = hist.savedAt
-          ? new Date(hist.savedAt).toLocaleString('zh-TW')
-          : `${selectedHistoryDate} (當日紀錄)`
+          ? `${formatDate(hist.savedAt, locale)} ${formatTime(hist.savedAt, locale)}`
+          : interpolate(t('seniorSameDayRecord'), { date: formatDate(selectedHistoryDate, locale) })
 
         return (
           <div style={{
@@ -579,9 +572,9 @@ export default function SeniorCareView({
                 background: '#fbf8f3',
               }}>
                 <div>
-                  <span style={{ fontSize: '11px', color: '#d3a665', fontWeight: 'bold' }}>歷史照護詳情</span>
+                  <span style={{ fontSize: '11px', color: '#d3a665', fontWeight: 'bold' }}>{t('seniorHistoryDetails')}</span>
                   <h3 style={{ margin: 0, fontSize: '18px', color: '#173f3b', fontWeight: 'bold' }}>
-                    📅 {selectedHistoryDate}
+                    📅 {formatDate(selectedHistoryDate, locale)}
                   </h3>
                 </div>
                 <button
@@ -618,30 +611,30 @@ export default function SeniorCareView({
                   flexDirection: 'column',
                   gap: '4px',
                 }}>
-                  <div><b>保存時間：</b>{savedTimestampStr}</div>
-                  <div><b>指標狀態：</b>{goodCount} 項良好 / {normalCount} 項正常 / {attentionCount} 項需留意</div>
+                  <div><b>{t('seniorSavedAt')}</b>{savedTimestampStr}</div>
+                  <div><b>{t('seniorMetricStatus')}</b>{interpolate(t('seniorMetricStatusSummary'), { good: formatNumber(goodCount, locale), normal: formatNumber(normalCount, locale), attention: formatNumber(attentionCount, locale) })}</div>
                 </div>
 
                 {/* 10 Metrics Status */}
                 <div>
                   <h4 style={{ margin: '0 0 10px 0', fontSize: '15px', color: '#173f3b', fontWeight: 'bold', borderLeft: '3px solid #d3a665', paddingLeft: '6px' }}>
-                    生理指標
+                    {t('seniorPhysicalMetrics')}
                   </h4>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
                     {metricsList.map(({ key, label }) => {
                       const val = hist[key]
                       let statusColor = '#5e746f'
-                      let statusText = '正常'
+                      let statusText = t('seniorStatusNormal')
                       let statusBg = '#fbfdfc'
 
                       if (val === 'good') {
                         statusColor = '#173f3b'
                         statusBg = '#eef5f3'
-                        statusText = '良好'
+                        statusText = t('seniorStatusGood')
                       } else if (val === 'attention') {
                         statusColor = '#e05a47'
                         statusBg = '#fdf2f0'
-                        statusText = '需要留意'
+                        statusText = t('seniorStatusAttention')
                       }
 
                       return (
@@ -674,7 +667,7 @@ export default function SeniorCareView({
                 {/* Care Notes */}
                 <div>
                   <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: '#173f3b', fontWeight: 'bold', borderLeft: '3px solid #d3a665', paddingLeft: '6px' }}>
-                    照護備忘錄
+                    {t('seniorCareNotes')}
                   </h4>
                   <div style={{
                     background: '#fdfaf5',
@@ -686,14 +679,14 @@ export default function SeniorCareView({
                     lineHeight: '1.5',
                     minHeight: '40px',
                   }}>
-                    {hist.notes || '（無備忘錄內容）'}
+                    {hist.notes || t('seniorNoNotes')}
                   </div>
                 </div>
 
                 {/* Medication tracking */}
                 <div>
                   <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: '#173f3b', fontWeight: 'bold', borderLeft: '3px solid #d3a665', paddingLeft: '6px' }}>
-                    服藥進度
+                    {t('seniorMedicationProgressShort')}
                   </h4>
                   <div style={{
                     background: '#fff',
@@ -703,22 +696,22 @@ export default function SeniorCareView({
                   }}>
                     {!hist.medsStatus || Object.keys(hist.medsStatus).length === 0 ? (
                       <div style={{ color: '#5e746f', fontSize: '13px', textAlign: 'center' }}>
-                        此紀錄無服藥提醒狀態。
+                        {t('seniorNoMedicationStatus')}
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {Object.entries(hist.medsStatus).map(([mKey, mStatus]) => {
                           const title = getMedTitleFromKey(mKey)
-                          let statusLabel = '待確認'
+                          let statusLabel = t('seniorPending')
                           let badgeBg = '#fdf8f0'
                           let badgeColor = '#8c6020'
 
                           if (mStatus === 'completed') {
-                            statusLabel = '已服用'
+                            statusLabel = t('seniorMedicationTaken')
                             badgeBg = '#eef5f3'
                             badgeColor = '#173f3b'
                           } else if (mStatus === 'skipped') {
-                            statusLabel = '略過'
+                            statusLabel = t('seniorSkipped')
                             badgeBg = '#fdf2f0'
                             badgeColor = '#e05a47'
                           }
@@ -764,7 +757,7 @@ export default function SeniorCareView({
               }}>
                 <button
                   onClick={() => {
-                    const confirmLoad = window.confirm('確定要載入此日資料進行編輯嗎？這將會覆蓋當前編輯中的表單。')
+                    const confirmLoad = window.confirm(t('seniorConfirmLoad'))
                     if (confirmLoad) {
                       // Set the current form date to this history record date
                       setSelectedDate(selectedHistoryDate)
@@ -786,7 +779,7 @@ export default function SeniorCareView({
                     cursor: 'pointer',
                   }}
                 >
-                  載入此日資料進行編輯
+                  {t('seniorLoadForEdit')}
                 </button>
                 <button
                   onClick={() => setSelectedHistoryDate(null)}
@@ -802,7 +795,7 @@ export default function SeniorCareView({
                     cursor: 'pointer',
                   }}
                 >
-                  返回列表
+                  {t('seniorBackToList')}
                 </button>
               </footer>
             </div>

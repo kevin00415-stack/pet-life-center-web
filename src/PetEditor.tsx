@@ -79,7 +79,7 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
       setY(50)
       setZoom(1)
     } catch (error) {
-      setPhotoError(error instanceof Error ? error.message : '照片處理失敗，請改選較小的照片。')
+      setPhotoError(error instanceof Error ? error.message : t('photoProcessingFailed'))
     } finally {
       setPreparing(false)
     }
@@ -95,7 +95,7 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
       setCoverY(50)
       setCoverZoom(1)
     } catch (error) {
-      setPhotoError(error instanceof Error ? error.message : '照片處理失敗，請改選較小的照片。')
+      setPhotoError(error instanceof Error ? error.message : t('photoProcessingFailed'))
     } finally {
       setPreparing(false)
     }
@@ -285,7 +285,7 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
     </fieldset>
     {/* 🐶 Basic Information */}
     <div className="cozy-editor-card card-basic premium-editor-card">
-      <h3>🐶 核心基本資料</h3>
+      <h3>🐶 {t('coreBasicInfo')}</h3>
       <div className="two-fields">
         <label className="required-field">{t('nameRequired')}
           <input name="name" defaultValue={pet?.name} required placeholder={t('placeholderHaji')} style={{ fontSize: '16px', padding: '10px 12px', borderLeft: '4px solid var(--honey)' }} />
@@ -310,7 +310,7 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
       <h3>{t('medicalAndMicrochipInfo')}</h3>
       <div className="two-fields">
         <label>{t('microchipNumberOptional')}
-          <input name="microchipNumber" defaultValue={pet?.microchipNumber} placeholder="例如：900138291..." style={{ fontSize: '16px', padding: '10px 12px' }} />
+          <input name="microchipNumber" defaultValue={pet?.microchipNumber} placeholder={t('microchipNumberPlaceholder')} style={{ fontSize: '16px', padding: '10px 12px' }} />
         </label>
         <label>{t('microchipRegistrationStatus')}
           <select name="microchipStatus" defaultValue={pet?.microchipStatus || t('microchipStatusNotImplanted')} style={{ fontSize: '16px', padding: '10px 12px' }}>
@@ -338,7 +338,7 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
 
     {/* 📝 Notes */}
     <div className="cozy-editor-card card-notes">
-      <h3>📝 備註與過敏史</h3>
+      <h3>📝 {t('notesAndAllergies')}</h3>
       <label>{t('medicalNotesOptional')}
         <textarea name="medicalNotes" defaultValue={pet?.medicalNotes} placeholder={t('placeholderMedicalNotes')} style={{ fontSize: '16px', padding: '10px 12px', minHeight: '90px', fontFamily: 'inherit', lineHeight: '1.5' }} />
       </label>

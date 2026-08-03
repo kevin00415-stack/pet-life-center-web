@@ -2,10 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { Camera, FilmStrip, Plus, Trash, Sparkle, Heart } from '@phosphor-icons/react'
 import type { MemoryEntry, MemoryMood, MemoryPhoto, MemoryVideo, Pet } from './domain'
 import { localDateKey } from './domain'
-import { useTranslation } from './i18n/translations'
+import { interpolate, useTranslation } from './i18n/translations'
+import { formatDate, formatNumber } from './i18n/formatters'
 
 type Props = { pet?: Pet; memories: MemoryEntry[]; onBack: () => void; onSave: (memory: MemoryEntry) => Promise<void>; onDelete: (memory: MemoryEntry) => Promise<void> }
-const moods: Array<[MemoryMood, string, string]> = [['happy', '開心', '☀'], ['calm', '平靜', '☁'], ['funny', '好笑', '☺'], ['brave', '勇敢', '★'], ['miss', '想念', '♡']]
+const moodKeys: Record<MemoryMood, 'moodHappy' | 'moodCalm' | 'moodFunny' | 'moodBrave' | 'moodMiss'> = { happy: 'moodHappy', calm: 'moodCalm', funny: 'moodFunny', brave: 'moodBrave', miss: 'moodMiss' }
+const moodIcons: Record<MemoryMood, string> = { happy: '☀', calm: '☁', funny: '☺', brave: '★', miss: '♡' }
+const optionKeys: Record<string, any> = {
+  '😋 正常': 'journalOptionNormal', '🧊 食慾差': 'journalOptionLowAppetite', '🍖 旺盛': 'journalOptionStrong', '🛑 禁食': 'journalOptionFasting', '💧 正常': 'journalOptionNormal', '🥛 喝水少': 'journalOptionLowWater', '🥤 喝水多': 'journalOptionHighWater', '🐕 活力充沛': 'journalOptionEnergetic', '💤 正常安靜': 'journalOptionCalm', '🛌 休息': 'journalOptionResting', '😴 熟睡': 'journalOptionDeepSleep', '🌀 易醒易驚': 'journalOptionRestlessSleep', '🌟 穩定': 'journalOptionStable', '🚽 尿量正常': 'journalOptionUrineNormal', '🧻 頻尿': 'journalOptionFrequentUrination', '❌ 無排尿': 'journalOptionNoUrination', '💩 便便正常': 'journalOptionStoolNormal', '💧 軟便拉稀': 'journalOptionDiarrhea', '🪨 便秘': 'journalOptionConstipation', '🟢 無嘔吐': 'journalOptionNoVomiting', '⚠️ 嘔吐一次': 'journalOptionVomitedOnce', '🚨 頻繁嘔吐': 'journalOptionFrequentVomiting', '💊 已服藥': 'journalOptionMedicationTaken', '❌ 未服藥': 'journalOptionMedicationMissed', '➖ 免服藥': 'journalOptionNoMedication', '✨ 精神極佳': 'journalOptionExcellent', '🥀 疲憊': 'journalOptionTired', '🦠 搔癢': 'journalOptionItchy', '🩺 穩定': 'journalOptionStable',
+}
 const MAX_VIDEO_BYTES = 150 * 1024 * 1024
 
 interface JournalStats {
@@ -53,15 +58,17 @@ function parseJournalStats(note: string): { stats: JournalStats | null; cleanNot
 }
 
 function PhotoThumb({ photo }: { photo: MemoryPhoto }) {
+  const { t } = useTranslation()
   const [url, setUrl] = useState('')
   useEffect(() => { const next = URL.createObjectURL(photo.blob); setUrl(next); return () => URL.revokeObjectURL(next) }, [photo])
-  return url ? <img src={url} alt={photo.name || '毛孩回憶照片'} /> : null
+  return url ? <img src={url} alt={photo.name || t('memoryPhotoAlt')} /> : null
 }
 
 function VideoPlayer({ video, compact = false }: { video: MemoryVideo; compact?: boolean }) {
+  const { t } = useTranslation()
   const [url, setUrl] = useState('')
   useEffect(() => { const next = URL.createObjectURL(video.blob); setUrl(next); return () => URL.revokeObjectURL(next) }, [video])
-  return url ? <video className={compact ? 'compact' : ''} src={url} controls preload="metadata" playsInline aria-label={video.name || '毛孩回憶影片'} /> : null
+  return url ? <video className={compact ? 'compact' : ''} src={url} controls preload="metadata" playsInline aria-label={video.name || t('memoryVideoAria')} /> : null
 }
 
 async function optimizePhoto(file: File): Promise<MemoryPhoto> {
@@ -78,7 +85,9 @@ async function optimizePhoto(file: File): Promise<MemoryPhoto> {
 }
 
 export default function MemoriesPage({ pet, memories, onBack, onSave, onDelete }: Props) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
+  const moods: Array<[MemoryMood, string, string]> = (Object.keys(moodKeys) as MemoryMood[]).map((value) => [value, t(moodKeys[value]), moodIcons[value]])
+  const displayOption = (value: string) => optionKeys[value] ? `${value.split(' ')[0]} ${t(optionKeys[value])}` : value
   const [editing, setEditing] = useState(false)
 
   // Custom Visual Journal States
@@ -149,23 +158,23 @@ Appetite: ${appetite} | Water: ${water} | Exercise: ${exercise} | Sleep: ${sleep
     const available = Math.max(0, 2 - videos.length)
     const selected = Array.from(files).slice(0, available)
     const oversized = selected.find((file) => file.size > MAX_VIDEO_BYTES)
-    if (oversized) return setMediaError(`「${oversized.name}」超過150 MB，請選較短的影片。`)
+    if (oversized) return setMediaError(interpolate(t('videoSizeLimitNamedError'), { name: oversized.name }))
     const added = selected.map<MemoryVideo>((file) => ({ id: crypto.randomUUID(), blob: file, mimeType: file.type, name: file.name, size: file.size }))
     setVideos((current) => [...current, ...added])
   }
 
-  return <section className="memories-page"><header className="timeline-header"><button onClick={onBack}>‹</button><div><span className="eyebrow">OFFLINE PET MEMORIES</span><h1>{pet?.name || t('genericPet')}的生活回憶與日記</h1><p>{t('offlinePetMemoriesDesc')}</p></div></header>
+  return <section className="memories-page"><header className="timeline-header"><button onClick={onBack} aria-label={t('back')}>‹</button><div><span className="eyebrow">OFFLINE PET MEMORIES</span><h1>{interpolate(t('memoryPageTitle'), { pet: pet?.name || t('genericPet') })}</h1><p>{t('offlinePetMemoriesDesc')}</p></div></header>
     <button className="new-memory" onClick={() => setEditing(true)}><Plus weight="bold" />{t('recordTodayJournal')}</button>
     {entries.length ? <div className="memory-list">{entries.map((memory) => {
       const { stats, cleanNote } = parseJournalStats(memory.note)
       return (
         <article key={memory.id} className="upgraded-diary-card">
-          {(memory.videos?.length || 0) > 0 && <div className="memory-videos"><VideoPlayer video={memory.videos![0]} compact />{memory.videos!.length > 1 && <span>另有 {memory.videos!.length - 1} 段影片</span>}</div>}
+          {(memory.videos?.length || 0) > 0 && <div className="memory-videos"><VideoPlayer video={memory.videos![0]} compact />{memory.videos!.length > 1 && <span>{interpolate(t('videoCountText'), { count: formatNumber(memory.videos!.length - 1, locale) })}</span>}</div>}
           {memory.photos.length > 0 && <div className={`memory-photos count-${Math.min(3, memory.photos.length)}`}>{memory.photos.slice(0, 3).map((photo) => <PhotoThumb key={photo.id} photo={photo} />)}{memory.photos.length > 3 && <em>＋{memory.photos.length - 3}</em>}</div>}
 
           <div className="memory-copy">
             <div className="diary-card-header">
-              <time>{new Date(`${memory.date}T12:00:00`).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
+              <time>{formatDate(memory.date, locale, { year: 'numeric', month: 'long', day: 'numeric' })}</time>
               <span className="mood-badge">{moods.find(([value]) => value === memory.mood)?.[2]} {moods.find(([value]) => value === memory.mood)?.[1]}</span>
             </div>
 
@@ -174,15 +183,15 @@ Appetite: ${appetite} | Water: ${water} | Exercise: ${exercise} | Sleep: ${sleep
             {/* Visual journal stats grid */}
             {stats && (
               <div className="visual-journal-grid">
-                {stats.appetite && <span className="journal-pill"><Sparkle size={12} weight="fill" style={{color:'#d5a14e'}} /> 食慾: {stats.appetite}</span>}
-                {stats.water && <span className="journal-pill">🥤 飲水: {stats.water}</span>}
-                {stats.exercise && <span className="journal-pill">🏃 活力: {stats.exercise}</span>}
-                {stats.sleep && <span className="journal-pill">🌙 睡眠: {stats.sleep}</span>}
-                {stats.urination && <span className="journal-pill">🚽 排尿: {stats.urination}</span>}
-                {stats.defecation && <span className="journal-pill">💩 排便: {stats.defecation}</span>}
-                {stats.vomiting && stats.vomiting !== '🟢 無嘔吐' && <span className="journal-pill danger-pill">⚠️ 嘔吐: {stats.vomiting}</span>}
-                {stats.medication && <span className="journal-pill">💊 服藥: {stats.medication}</span>}
-                {stats.body && <span className="journal-pill"><Heart size={12} weight="fill" style={{color:'#e28e83'}} /> 精神: {stats.body}</span>}
+                {stats.appetite && <span className="journal-pill"><Sparkle size={12} weight="fill" style={{color:'#d5a14e'}} /> {t('journalPillAppetite')}: {displayOption(stats.appetite)}</span>}
+                {stats.water && <span className="journal-pill">🥤 {t('journalPillWater')}: {displayOption(stats.water)}</span>}
+                {stats.exercise && <span className="journal-pill">🏃 {t('journalPillExercise')}: {displayOption(stats.exercise)}</span>}
+                {stats.sleep && <span className="journal-pill">🌙 {t('journalPillSleep')}: {displayOption(stats.sleep)}</span>}
+                {stats.urination && <span className="journal-pill">🚽 {t('journalPillUrination')}: {displayOption(stats.urination)}</span>}
+                {stats.defecation && <span className="journal-pill">💩 {t('journalPillDefecation')}: {displayOption(stats.defecation)}</span>}
+                {stats.vomiting && stats.vomiting !== '🟢 無嘔吐' && <span className="journal-pill danger-pill">⚠️ {t('journalPillVomiting')}: {displayOption(stats.vomiting)}</span>}
+                {stats.medication && <span className="journal-pill">💊 {t('journalPillMedication')}: {displayOption(stats.medication)}</span>}
+                {stats.body && <span className="journal-pill"><Heart size={12} weight="fill" style={{color:'#e28e83'}} /> {t('journalPillBody')}: {displayOption(stats.body)}</span>}
               </div>
             )}
 
@@ -194,7 +203,7 @@ Appetite: ${appetite} | Water: ${water} | Exercise: ${exercise} | Sleep: ${sleep
       )
     })}</div> : <div className="timeline-empty"><FilmStrip size={30} /><b>{t('firstDiaryEmptyTitle')}</b><p>{t('firstDiaryEmptyDesc')}</p></div>}
 
-    {editing && <div className="sheet-backdrop"><section className="editor-sheet memory-editor visual-journal-editor"><header><div><span>NEW LOCAL JOURNAL</span><h2>{t('newLocalJournal')}</h2></div><button className="close" onClick={() => setEditing(false)}>×</button></header><form action={submit}>
+    {editing && <div className="sheet-backdrop"><section className="editor-sheet memory-editor visual-journal-editor"><header><div><span>NEW LOCAL JOURNAL</span><h2>{t('newLocalJournal')}</h2></div><button className="close" aria-label={t('close')} onClick={() => setEditing(false)}>×</button></header><form action={submit}>
       <div className="two-fields"><label>{t('dateLabel')}<input type="date" name="date" defaultValue={localDateKey()} required /></label><label>{t('diaryTitleLabel')}<input name="title" required placeholder={t('diaryTitlePlaceholder')} /></label></div>
 
       {/* Visual Mood Section */}
@@ -209,7 +218,7 @@ Appetite: ${appetite} | Water: ${water} | Exercise: ${exercise} | Sleep: ${sleep
           <span className="logger-label">{t('appetiteLabel')}</span>
           <div className="logger-options">
             {['😋 正常', '🧊 食慾差', '🍖 旺盛', '🛑 禁食'].map(opt => (
-              <button type="button" key={opt} className={appetite === opt ? 'active' : ''} onClick={() => setAppetite(opt)}>{opt}</button>
+              <button type="button" key={opt} className={appetite === opt ? 'active' : ''} onClick={() => setAppetite(opt)}>{displayOption(opt)}</button>
             ))}
           </div>
         </div>
@@ -219,7 +228,7 @@ Appetite: ${appetite} | Water: ${water} | Exercise: ${exercise} | Sleep: ${sleep
           <span className="logger-label">{t('waterLabel')}</span>
           <div className="logger-options">
             {['💧 正常', '🥛 喝水少', '🥤 喝水多'].map(opt => (
-              <button type="button" key={opt} className={water === opt ? 'active' : ''} onClick={() => setWater(opt)}>{opt}</button>
+              <button type="button" key={opt} className={water === opt ? 'active' : ''} onClick={() => setWater(opt)}>{displayOption(opt)}</button>
             ))}
           </div>
         </div>
@@ -229,7 +238,7 @@ Appetite: ${appetite} | Water: ${water} | Exercise: ${exercise} | Sleep: ${sleep
           <span className="logger-label">{t('exerciseLabel')}</span>
           <div className="logger-options">
             {['🐕 活力充沛', '💤 正常安靜', '🛌 休息'].map(opt => (
-              <button type="button" key={opt} className={exercise === opt ? 'active' : ''} onClick={() => setExercise(opt)}>{opt}</button>
+              <button type="button" key={opt} className={exercise === opt ? 'active' : ''} onClick={() => setExercise(opt)}>{displayOption(opt)}</button>
             ))}
           </div>
         </div>
@@ -239,7 +248,7 @@ Appetite: ${appetite} | Water: ${water} | Exercise: ${exercise} | Sleep: ${sleep
           <span className="logger-label">{t('sleepLabel')}</span>
           <div className="logger-options">
             {['😴 熟睡', '🌀 易醒易驚', '🌟 穩定'].map(opt => (
-              <button type="button" key={opt} className={sleep === opt ? 'active' : ''} onClick={() => setSleep(opt)}>{opt}</button>
+              <button type="button" key={opt} className={sleep === opt ? 'active' : ''} onClick={() => setSleep(opt)}>{displayOption(opt)}</button>
             ))}
           </div>
         </div>
@@ -249,7 +258,7 @@ Appetite: ${appetite} | Water: ${water} | Exercise: ${exercise} | Sleep: ${sleep
           <span className="logger-label">{t('urinationLabel')}</span>
           <div className="logger-options">
             {['🚽 尿量正常', '🧻 頻尿', '❌ 無排尿'].map(opt => (
-              <button type="button" key={opt} className={urination === opt ? 'active' : ''} onClick={() => setUrination(opt)}>{opt}</button>
+              <button type="button" key={opt} className={urination === opt ? 'active' : ''} onClick={() => setUrination(opt)}>{displayOption(opt)}</button>
             ))}
           </div>
         </div>
@@ -259,7 +268,7 @@ Appetite: ${appetite} | Water: ${water} | Exercise: ${exercise} | Sleep: ${sleep
           <span className="logger-label">{t('defecationLabel')}</span>
           <div className="logger-options">
             {['💩 便便正常', '💧 軟便拉稀', '🪨 便秘'].map(opt => (
-              <button type="button" key={opt} className={defecation === opt ? 'active' : ''} onClick={() => setDefecation(opt)}>{opt}</button>
+              <button type="button" key={opt} className={defecation === opt ? 'active' : ''} onClick={() => setDefecation(opt)}>{displayOption(opt)}</button>
             ))}
           </div>
         </div>
@@ -269,7 +278,7 @@ Appetite: ${appetite} | Water: ${water} | Exercise: ${exercise} | Sleep: ${sleep
           <span className="logger-label">{t('vomitingLabel')}</span>
           <div className="logger-options">
             {['🟢 無嘔吐', '⚠️ 嘔吐一次', '🚨 頻繁嘔吐'].map(opt => (
-              <button type="button" key={opt} className={vomiting === opt ? 'active' : ''} onClick={() => setVomiting(opt)}>{opt}</button>
+              <button type="button" key={opt} className={vomiting === opt ? 'active' : ''} onClick={() => setVomiting(opt)}>{displayOption(opt)}</button>
             ))}
           </div>
         </div>
@@ -279,7 +288,7 @@ Appetite: ${appetite} | Water: ${water} | Exercise: ${exercise} | Sleep: ${sleep
           <span className="logger-label">{t('medicationLabel')}</span>
           <div className="logger-options">
             {['💊 已服藥', '❌ 未服藥', '➖ 免服藥'].map(opt => (
-              <button type="button" key={opt} className={medication === opt ? 'active' : ''} onClick={() => setMedication(opt)}>{opt}</button>
+              <button type="button" key={opt} className={medication === opt ? 'active' : ''} onClick={() => setMedication(opt)}>{displayOption(opt)}</button>
             ))}
           </div>
         </div>
@@ -289,7 +298,7 @@ Appetite: ${appetite} | Water: ${water} | Exercise: ${exercise} | Sleep: ${sleep
           <span className="logger-label">{t('bodyLabel')}</span>
           <div className="logger-options">
             {['✨ 精神極佳', '🥀 疲憊', '🦠 搔癢', '🩺 穩定'].map(opt => (
-              <button type="button" key={opt} className={body === opt ? 'active' : ''} onClick={() => setBody(opt)}>{opt}</button>
+              <button type="button" key={opt} className={body === opt ? 'active' : ''} onClick={() => setBody(opt)}>{displayOption(opt)}</button>
             ))}
           </div>
         </div>
@@ -299,7 +308,7 @@ Appetite: ${appetite} | Water: ${water} | Exercise: ${exercise} | Sleep: ${sleep
 
       <fieldset className="journal-fieldset"><legend>{t('photosMax5')}</legend><label className="photo-picker"><Camera />{t('selectPhotoBtn')}<input type="file" accept="image/*" multiple onChange={(event) => void addPhotos(event.target.files)} /></label>{photos.length > 0 && <div className="photo-previews">{photos.map((photo) => <div key={photo.id}><PhotoThumb photo={photo} /><button type="button" onClick={() => setPhotos((current) => current.filter((item) => item.id !== photo.id))}>×</button></div>)}</div>}</fieldset>
 
-      <fieldset className="journal-fieldset"><legend>{t('videosMax2')}</legend><label className="photo-picker"><FilmStrip />{t('selectVideoBtn')}<input type="file" accept="video/*" multiple onChange={(event) => addVideos(event.target.files)} /></label>{videos.length > 0 && <div className="video-previews">{videos.map((video) => <div key={video.id}><VideoPlayer video={video} /><button type="button" onClick={() => setVideos((current) => current.filter((item) => item.id !== video.id))}>移除</button><small>{video.name}・{Math.ceil(video.size / 1024 / 1024)} MB</small></div>)}</div>}{mediaError && <p className="field-error">{mediaError}</p>}<p className="local-photo-note">{t('videoLimitNote')}</p></fieldset>
+      <fieldset className="journal-fieldset"><legend>{t('videosMax2')}</legend><label className="photo-picker"><FilmStrip />{t('selectVideoBtn')}<input type="file" accept="video/*" multiple onChange={(event) => addVideos(event.target.files)} /></label>{videos.length > 0 && <div className="video-previews">{videos.map((video) => <div key={video.id}><VideoPlayer video={video} /><button type="button" onClick={() => setVideos((current) => current.filter((item) => item.id !== video.id))}>{t('remove')}</button><small>{video.name}・{formatNumber(Math.ceil(video.size / 1024 / 1024), locale)} MB</small></div>)}</div>}{mediaError && <p className="field-error">{mediaError}</p>}<p className="local-photo-note">{t('videoLimitNote')}</p></fieldset>
 
       <button className="save-reminder" disabled={saving}>{saving ? t('savingDiaryBtn') : t('saveDiaryBtn')}</button>
     </form></section></div>}

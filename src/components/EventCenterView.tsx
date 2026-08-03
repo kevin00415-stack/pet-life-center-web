@@ -14,6 +14,8 @@ import {
   deleteMediaItem,
   type MediaStorageItem,
 } from '../device-store'
+import { interpolate, useTranslation } from '../i18n/translations'
+import { formatDate, formatTime } from '../i18n/formatters'
 
 interface EventCenterViewProps {
   pet?: Pet
@@ -38,18 +40,11 @@ interface PendingMedia {
   previewUrl: string
 }
 
-const CATEGORIES = [
-  { key: 'seizure', label: '癲癇/抽搐', icon: '🧠' },
-  { key: 'vomiting', label: '嘔吐/噁心', icon: '🤮' },
-  { key: 'diarrhea', label: '拉肚子/腹瀉', icon: '🚽' },
-  { key: 'injury', label: '外傷/受傷', icon: '🩹' },
-  { key: 'walking', label: '走路異常', icon: '🐕' },
-  { key: 'breathing', label: '呼吸急促/困難', icon: '🫁' },
-  { key: 'appetite', label: '食慾不振', icon: '🥣' },
-  { key: 'other', label: '其他異常', icon: '⚠️' },
-] as const
-
 export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
+  const { t, locale } = useTranslation()
+  const categories = [
+    { key: 'seizure', label: t('abnormalSeizure'), icon: '🧠' }, { key: 'vomiting', label: t('abnormalVomiting'), icon: '🤮' }, { key: 'diarrhea', label: t('abnormalDiarrhea'), icon: '🚽' }, { key: 'injury', label: t('abnormalInjury'), icon: '🩹' }, { key: 'walking', label: t('abnormalWalking'), icon: '🐕' }, { key: 'breathing', label: t('abnormalBreathing'), icon: '🫁' }, { key: 'appetite', label: t('abnormalAppetite'), icon: '🥣' }, { key: 'other', label: t('abnormalOther'), icon: '⚠️' },
+  ] as const
   const [category, setCategory] = useState<AbnormalEvent['category']>('other')
   const [notes, setNotes] = useState('')
   const [history, setHistory] = useState<AbnormalEvent[]>([])
@@ -127,7 +122,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
     const file = files[0]
     const validation = sharedMediaService.validateMedia(file)
     if (!validation.valid) {
-      setValidationError(validation.error || '檔案驗證失敗。')
+      setValidationError(validation.error || t('eventValidationFailed'))
       return
     }
 
@@ -189,7 +184,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
         await saveMediaItem(storageItem)
       } catch (err) {
         console.error('Failed to save media item to IndexedDB', err)
-        setValidationError('儲存媒體檔案至資料庫時發生錯誤。')
+        setValidationError(t('eventSaveMediaFailed'))
         return
       }
     }
@@ -215,11 +210,11 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
     setPendingMedia([])
     setValidationError('')
 
-    alert('⚠️ 異常事件與現場證據已成功記錄，並自動同步至健康時間軸！')
+    alert(t('eventSaved'))
   }
 
   const handleDeleteEvent = async (event: AbnormalEvent) => {
-    if (!storageKey || !window.confirm('確定要刪除此筆異常紀錄與其相關現場證據嗎？')) return
+    if (!storageKey || !window.confirm(t('eventConfirmDelete'))) return
 
     // Cascade delete any linked media from IndexedDB
     if (event.mediaIds && event.mediaIds.length > 0) {
@@ -265,32 +260,30 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
       />
 
       <header style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }} aria-label="返回今日看板">
+        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }} aria-label={t('reminderBackDashboard')}>
           <ArrowLeft size={24} color="#173f3b" />
         </button>
         <div>
-          <span style={{ fontSize: '11px', color: '#d3a665', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>異常事件記錄</span>
+          <span style={{ fontSize: '11px', color: '#d3a665', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('eventRecord')}</span>
           <h1 style={{ margin: 0, fontSize: '22px', color: '#173f3b', fontWeight: 'bold' }}>
-            {pet?.name || '毛孩'}的異常事件中心
+            {interpolate(t('eventTitle'), { pet: pet?.name || t('genericPet') })}
           </h1>
         </div>
       </header>
 
       {/* Philosophy banner */}
       <div style={{ background: '#fdf2f0', border: '1.5px solid #f9dedb', borderRadius: '14px', padding: '16px', marginBottom: '20px', color: '#6d1d11', fontSize: '14px', lineHeight: '1.6' }}>
-        📢 <b>重要守護提醒：</b>
-        此功能用於<b>「即時保留現場證據與異變時間紀錄」</b>以供後續看診。
-        本系統不提供任何醫療診斷或 AI 分析，若有急症請務必即刻聯繫專業獸醫。
+        📢 <b>{t('eventSafetyTitle')}</b>{t('eventSafetyBody')}
       </div>
 
       {/* Select Event Type Category Grid */}
       <section style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '17px', color: '#173f3b', marginBottom: '14px', borderLeft: '4px solid #e05a47', paddingLeft: '8px', fontWeight: 'bold' }}>
-          選擇異常類型
+          {t('eventChooseType')}
         </h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-          {CATEGORIES.map((item) => {
+          {categories.map((item) => {
             const isSelected = category === item.key
             return (
               <button
@@ -325,7 +318,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
       {/* Media Capture Section */}
       <section style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '17px', color: '#173f3b', marginBottom: '14px', borderLeft: '4px solid #e05a47', paddingLeft: '8px', fontWeight: 'bold' }}>
-          現場證據保留
+          {t('eventEvidence')}
         </h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
@@ -347,7 +340,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
             }}
           >
             <Camera size={24} color="#e05a47" />
-            <b style={{ fontSize: '12px' }}>立即拍照</b>
+            <b style={{ fontSize: '12px' }}>{t('eventTakePhoto')}</b>
           </button>
 
           {/* Video Box */}
@@ -368,7 +361,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
             }}
           >
             <VideoCamera size={24} color="#e05a47" />
-            <b style={{ fontSize: '12px' }}>立即錄影</b>
+            <b style={{ fontSize: '12px' }}>{t('eventRecordVideo')}</b>
           </button>
 
           {/* Gallery Box */}
@@ -389,7 +382,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
             }}
           >
             <Image size={24} color="#e05a47" />
-            <b style={{ fontSize: '12px' }}>相簿選擇</b>
+            <b style={{ fontSize: '12px' }}>{t('eventChooseGallery')}</b>
           </button>
         </div>
 
@@ -403,7 +396,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
         {/* Previews of captured unsaved files */}
         {pendingMedia.length > 0 && (
           <div style={{ marginTop: '14px' }}>
-            <h3 style={{ fontSize: '13px', color: '#5e746f', marginBottom: '8px' }}>待儲存證據預覽：</h3>
+            <h3 style={{ fontSize: '13px', color: '#5e746f', marginBottom: '8px' }}>{t('eventPendingPreview')}</h3>
             <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '8px' }}>
               {pendingMedia.map((media) => (
                 <div key={media.id} style={{ position: 'relative', width: '90px', height: '90px', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', border: '1px solid #dce7e4' }}>
@@ -434,7 +427,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
                     ×
                   </button>
                   <div style={{ position: 'absolute', bottom: '0', left: '0', right: '0', background: 'rgba(0,0,0,0.4)', color: '#fff', fontSize: '9px', textAlign: 'center', padding: '2px 0' }}>
-                    {media.type === 'photo' ? '照片' : '影片'}
+                    {media.type === 'photo' ? t('settingsPhotos') : t('memoryVideoAria')}
                   </div>
                 </div>
               ))}
@@ -446,13 +439,13 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
       {/* Quick Notes Section */}
       <section style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '17px', color: '#173f3b', marginBottom: '14px', borderLeft: '4px solid #e05a47', paddingLeft: '8px', fontWeight: 'bold' }}>
-          快速狀況備忘
+          {t('eventQuickNotes')}
         </h2>
         <div style={{ background: '#fff', borderRadius: '16px', padding: '16px', border: '1px solid #f2e9dc', boxShadow: '0 4px 12px rgba(111, 78, 55, 0.03)' }}>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="例如：抽搐持續了約一分鐘，眼神有些渙散，口吐白沫，之後慢慢恢復神智..."
+            placeholder={t('eventNotesPlaceholder')}
             style={{
               width: '100%',
               minHeight: '90px',
@@ -487,30 +480,24 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
           marginBottom: '32px',
         }}
       >
-        儲存並自動同步至健康時間軸
+        {t('eventSaveAndSync')}
       </button>
 
       {/* History timeline within Event Center */}
       <section>
         <h2 style={{ fontSize: '17px', color: '#173f3b', marginBottom: '14px', borderLeft: '4px solid #e05a47', paddingLeft: '8px', fontWeight: 'bold' }}>
-          歷史異常事件
+          {t('eventHistory')}
         </h2>
 
         {history.length === 0 ? (
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', textAlign: 'center', border: '1px solid #f2e9dc', color: '#5e746f' }}>
-            尚無任何異常事件紀錄。
+            {t('eventHistoryEmpty')}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {history.map((ev) => {
-              const matchedCat = CATEGORIES.find((c) => c.key === ev.category)
-              const dateStr = new Date(ev.timestamp).toLocaleString('zh-TW', {
-                month: 'numeric',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false,
-              })
+              const matchedCat = categories.find((c) => c.key === ev.category)
+              const dateStr = `${formatDate(ev.timestamp, locale, { month: 'numeric', day: 'numeric' })} ${formatTime(ev.timestamp, locale, { hour: '2-digit', minute: '2-digit', hour12: false })}`
 
               return (
                 <article
@@ -531,12 +518,12 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
                       onClick={() => handleDeleteEvent(ev)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: '#e05a47', fontSize: '13px' }}
                     >
-                      <Trash size={16} /> 刪除紀錄
+                      <Trash size={16} /> {t('eventDeleteRecord')}
                     </button>
                   </div>
 
                   <p style={{ margin: 0, fontSize: '14px', color: '#263b37', lineHeight: '1.5', background: '#fdfaf5', padding: '10px', borderRadius: '10px', borderLeft: '3px solid #e05a47' }}>
-                    {ev.notes}
+                    {ev.notes === '未填寫詳細說明' ? t('eventGeneratedNoDetails') : ev.notes}
                   </p>
 
                   {/* Real Saved media player/viewer inside History items */}
@@ -554,7 +541,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
                               <video src={media.url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             )}
                             <div style={{ position: 'absolute', bottom: '0', left: '0', right: '0', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '9px', textAlign: 'center', padding: '3px 0' }}>
-                              {isPhoto ? '📷 現場照片' : '🎥 現場影片'}
+                              {isPhoto ? `📷 ${t('eventScenePhoto')}` : `🎥 ${t('eventSceneVideo')}`}
                             </div>
                           </div>
                         )
@@ -563,7 +550,7 @@ export default function EventCenterView({ pet, onBack }: EventCenterViewProps) {
                   )}
 
                   <div style={{ marginTop: '10px', fontSize: '11px', color: '#5e746f' }}>
-                    🕒 紀錄時間: {dateStr}
+                    🕒 {t('eventRecordedAt')}: {dateStr}
                   </div>
                 </article>
               )
