@@ -3,16 +3,33 @@ import { zhTW } from './zh-TW'
 import type { TranslationKeys } from './zh-TW'
 import { en } from './en'
 
-export type LocaleType = 'zh-TW' | 'en'
+export type LocaleType = 'zh-TW' | 'en-US'
+export type LocaleInput = LocaleType | 'en'
+
+export const supportedLocales: ReadonlyArray<{ code: LocaleType; label: string; nativeLabel: string }> = [
+  { code: 'zh-TW', label: 'Traditional Chinese', nativeLabel: '繁體中文' },
+  { code: 'en-US', label: 'English', nativeLabel: 'English' },
+]
+
+export function detectLocale(languages: readonly string[] = typeof navigator === 'undefined' ? [] : navigator.languages) : LocaleType {
+  for (const language of languages) {
+    const normalized = language.toLowerCase()
+    if (normalized.startsWith('en')) return 'en-US'
+    if (normalized.startsWith('zh')) return 'zh-TW'
+  }
+  return 'zh-TW'
+}
+
+const normalizeLocale = (locale: LocaleInput): LocaleType => locale === 'en' ? 'en-US' : locale
 
 // Singleton or global simple locale observer
-let currentLocale: LocaleType = 'zh-TW'
+let currentLocale: LocaleType = detectLocale()
 try {
   const stored = typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem('maohai-app-locale') : null
-  if (stored === 'zh-TW' || stored === 'en') {
-    currentLocale = stored as LocaleType
+  if (stored === 'zh-TW' || stored === 'en-US' || stored === 'en') {
+    currentLocale = normalizeLocale(stored)
   }
-} catch (e) {
+} catch {
   // Safe fallback for SSR or test environments
 }
 
@@ -22,14 +39,16 @@ export function getLocale(): LocaleType {
   return currentLocale
 }
 
-export function setLocale(locale: LocaleType) {
+export function setLocale(input: LocaleInput) {
+  const locale = normalizeLocale(input)
   if (locale !== currentLocale) {
     currentLocale = locale
+    if (typeof document !== 'undefined') document.documentElement.lang = locale
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem('maohai-app-locale', locale)
       }
-    } catch (e) {
+    } catch {
       // Safe fallback
     }
     listeners.forEach((l) => l(locale))
@@ -50,10 +69,14 @@ export function useTranslation() {
   }, [])
 
   const t = (key: TranslationKeys): string => {
-    const dict = locale === 'en' ? en : zhTW
+    const dict = locale === 'en-US' ? en : zhTW
     // Safe fallback to zh-TW dictionary first, then standard string key name
     return dict[key] || zhTW[key] || (key as string)
   }
 
   return { t, locale, changeLocale: setLocale }
+}
+
+export function interpolate(template: string, values: Record<string, string | number>) {
+  return template.replace(/\{([^}]+)\}/g, (match, key: string) => key in values ? String(values[key]) : match)
 }

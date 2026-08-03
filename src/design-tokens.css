@@ -1,0 +1,41 @@
+:root {
+  --guardian-color-canvas: #f7f1e7;
+  --guardian-color-surface: #fffdf9;
+  --guardian-color-surface-muted: #edf4ec;
+  --guardian-color-ink: #2f2a24;
+  --guardian-color-muted: #6f6a62;
+  --guardian-color-brand: #52755c;
+  --guardian-color-brand-strong: #35523e;
+  --guardian-color-accent: #ca9d56;
+  --guardian-color-line: #dfd3c1;
+  --guardian-color-focus: #2f766b;
+  --guardian-font-sans: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  --guardian-font-display: Georgia, 'Noto Serif TC', serif;
+  --guardian-space-1: .25rem;
+  --guardian-space-2: .5rem;
+  --guardian-space-3: .75rem;
+  --guardian-space-4: 1rem;
+  --guardian-space-5: 1.5rem;
+  --guardian-space-6: 2rem;
+  --guardian-space-7: 3rem;
+  --guardian-radius-sm: .75rem;
+  --guardian-radius-md: 1.25rem;
+  --guardian-radius-lg: 2rem;
+  --guardian-radius-pill: 999px;
+  --guardian-shadow-sm: 0 6px 18px rgba(64, 50, 34, .08);
+  --guardian-shadow-md: 0 18px 48px rgba(64, 50, 34, .12);
+  --guardian-shadow-focus: 0 0 0 4px rgba(47, 118, 107, .22);
+  --guardian-motion-fast: 160ms;
+  --guardian-motion-standard: 280ms;
+  --guardian-breakpoint-tablet: 48rem;
+  --guardian-breakpoint-desktop: 72rem;
+}
+
+.guardian-button,.guardian-card{transition:transform var(--guardian-motion-fast) ease,box-shadow var(--guardian-motion-fast) ease}
+.guardian-button{min-height:44px;border:0;border-radius:var(--guardian-radius-pill);padding:.75rem 1.1rem;font-weight:800}
+.guardian-button--primary{background:var(--guardian-color-brand);color:#fff;box-shadow:var(--guardian-shadow-sm)}
+.guardian-button--secondary{background:var(--guardian-color-surface);color:var(--guardian-color-brand-strong);border:1px solid var(--guardian-color-line)}
+.guardian-card{border:1px solid var(--guardian-color-line);border-radius:var(--guardian-radius-md);background:var(--guardian-color-surface);box-shadow:var(--guardian-shadow-sm)}
+.guardian-button:hover,.guardian-card:hover{transform:translateY(-2px);box-shadow:var(--guardian-shadow-md)}
+.guardian-button:focus-visible,.guardian-card:focus-visible{outline:0;box-shadow:var(--guardian-shadow-focus)}
+@media(prefers-reduced-motion:reduce){.guardian-button,.guardian-card{transition:none}.guardian-button:hover,.guardian-card:hover{transform:none}}
