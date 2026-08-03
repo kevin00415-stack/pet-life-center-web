@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest'
 import { guardianTodayService } from './GuardianTodayService'
-import type { Pet, CareReminder, GrowthRecord } from '../domain'
+import type { Pet, CareReminder } from '../domain'
 
 const mockPet: Pet = {
   id: 'coco-123',
