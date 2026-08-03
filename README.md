@@ -1,5 +1,7 @@
 # 🐾 毛孩生活中心 App (Maohai Life Center)
 
+> **Current approved direction:** 毛孩生活中心 / Pet Life Center, delivered as a PWA with intentional Capacitor Android and iOS shells. The synchronized Guardian OS baseline includes Timeline, Observation, Context, Insight, Case Journey, Guardian Today, Attachment and Shared Media services. See [`docs/GLOBAL_LAUNCH_FOUNDATION.md`](docs/GLOBAL_LAUNCH_FOUNDATION.md).
+
 > **安心陪伴每一天，為愛寵量身打造的單機優先排程與健康管理助手。**
 
 毛孩生活中心是一款以手機優先（Mobile-First）設計，採用 **React + TypeScript + Vite** 建置的漸進式網頁應用程式（**PWA**）。專案更透過 **Capacitor** 強力封裝了 Android 與 iOS 原生專案，讓飼主在離線或無網路環境下，依然能流暢、私密地追蹤愛寵的所有生活照護細節。
