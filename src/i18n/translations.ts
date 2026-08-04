@@ -22,6 +22,14 @@ export function detectLocale(languages: readonly string[] = typeof navigator ===
 
 const normalizeLocale = (locale: LocaleInput): LocaleType => locale === 'en' ? 'en-US' : locale
 
+export const alternateLocale = (locale: LocaleType): LocaleType =>
+  ({ 'zh-TW': 'en-US', 'en-US': 'zh-TW' } as const)[locale]
+
+export function translate(key: TranslationKeys, locale: LocaleType = currentLocale): string {
+  const dict = locale === 'en-US' ? en : zhTW
+  return dict[key] || zhTW[key] || (key as string)
+}
+
 // Singleton or global simple locale observer
 let currentLocale: LocaleType = detectLocale()
 try {
@@ -68,11 +76,7 @@ export function useTranslation() {
     }
   }, [])
 
-  const t = (key: TranslationKeys): string => {
-    const dict = locale === 'en-US' ? en : zhTW
-    // Safe fallback to zh-TW dictionary first, then standard string key name
-    return dict[key] || zhTW[key] || (key as string)
-  }
+  const t = (key: TranslationKeys): string => translate(key, locale)
 
   return { t, locale, changeLocale: setLocale }
 }

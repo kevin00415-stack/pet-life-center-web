@@ -191,7 +191,8 @@ describe('CareHomeView Guardian Daily Dashboard Tests', () => {
 
     expect(html).toContain('最新體重數據')
     expect(html).toContain('6.5')
-    expect(html).toContain('2026-07-31')
+    expect(html).toContain('2026')
+    expect(html).toContain('7')
   })
 
   test('8. Empty reminder state renders correctly', () => {

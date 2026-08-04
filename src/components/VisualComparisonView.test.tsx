@@ -176,6 +176,6 @@ describe('Guardian Visual Comparison Tests', () => {
     )
 
     expect(html).toContain('歷史比對紀錄')
-    expect(html).toContain('⚠️ 素材已丟失')
+    expect(html).toContain('⚠️ 素材已遺失')
   })
 })

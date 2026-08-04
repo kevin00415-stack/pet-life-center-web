@@ -17,7 +17,7 @@ export function CommunityTabs({
   const { t } = useTranslation()
 
   return (
-    <nav className="filters" style={{ display: 'flex', gap: '6px', margin: '0 16px 20px 16px', overflowX: 'auto', paddingBottom: '4px' }} aria-label="社群子分頁">
+    <nav className="filters" style={{ display: 'flex', gap: '6px', margin: '0 16px 20px 16px', overflowX: 'auto', paddingBottom: '4px' }} aria-label={t('communityTabsAria')}>
       <button className={activeTab === 'topics' ? 'active' : ''} onClick={() => onTabChange('topics')} style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
         <Users size={16} /> {t('tabTopics')}
       </button>

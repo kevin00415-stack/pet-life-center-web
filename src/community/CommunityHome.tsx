@@ -6,7 +6,7 @@ import { BroadcastCard } from './components/BroadcastCard'
 import { EventCard } from './components/EventCard'
 import { PrivateChatView } from './components/PrivateChatView'
 import { CommunityTabs } from './components/CommunityTabs'
-import { useTranslation } from '../i18n/translations'
+import { alternateLocale, useTranslation } from '../i18n/translations'
 import { mockUnreadChat, mockTopics, mockBroadcasts, mockEvents } from './community-data'
 import { GroupDetailView } from './components/GroupDetailView'
 
@@ -99,11 +99,11 @@ export default function CommunityHome({ onBack }: CommunityHomeProps) {
 
           {/* Simple language switch button for localized user testing */}
           <button
-            onClick={() => changeLocale(locale === 'zh-TW' ? 'en' : 'zh-TW')}
+            onClick={() => changeLocale(alternateLocale(locale))}
             style={{ fontSize: '12px', background: '#eef3f1', color: '#173f3b', border: '1px solid #dcdfdc', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', marginRight: '16px', fontWeight: 'bold' }}
-            title="Switch Language"
+            title={t('switchLanguage')}
           >
-            {locale === 'zh-TW' ? 'English' : '繁體中文'}
+            {t('switchLanguage')}
           </button>
         </div>
 

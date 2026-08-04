@@ -28,6 +28,8 @@ import {
   VISUAL_COMPARISON_CATEGORIES,
   type VisualComparisonRecord,
 } from '../services/VisualComparisonService'
+import { interpolate, useTranslation } from '../i18n/translations'
+import { formatDate, formatTime } from '../i18n/formatters'
 
 interface VisualComparisonViewProps {
   pet?: Pet
@@ -35,6 +37,8 @@ interface VisualComparisonViewProps {
 }
 
 export default function VisualComparisonView({ pet, onBack }: VisualComparisonViewProps) {
+  const { t, locale } = useTranslation()
+  const categoryLabels: Record<string, string> = { gait: t('comparisonGait'), spirit: t('comparisonSpirit'), skin: t('comparisonSkin'), wound: t('comparisonWound'), body: t('comparisonBody'), eating: t('comparisonEating'), seizure: t('comparisonSeizure'), breathing: t('comparisonBreathing'), other: t('speciesOther') }
   const [mediaList, setMediaList] = useState<MediaStorageItem[]>([])
   const [savedMedia, setSavedMedia] = useState<Record<string, { blob: Blob; url: string }>>({})
   const [comparisons, setComparisons] = useState<VisualComparisonRecord[]>(() => pet ? getVisualComparisons(pet.id) : [])
@@ -114,7 +118,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
   const handleAddMedia = async (e: React.ChangeEvent<HTMLInputElement>, preferredType?: 'photo' | 'video') => {
     setValidationError('')
     if (!pet) {
-      setValidationError('請先選擇或建立毛孩檔案。')
+      setValidationError(t('comparisonSelectPetError'))
       return
     }
 
@@ -124,7 +128,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
     const file = files[0]
     const validation = sharedMediaService.validateMedia(file)
     if (!validation.valid) {
-      setValidationError(validation.error || '不支援的檔案。')
+      setValidationError(validation.error || t('comparisonUnsupportedFile'))
       return
     }
 
@@ -162,7 +166,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
       }
     } catch (err) {
       console.error('Failed to save comparison source media', err)
-      setValidationError('儲存媒體檔案至本機資料庫時發生錯誤。')
+      setValidationError(t('comparisonSaveMediaError'))
     } finally {
       setIsUploading(false)
       e.target.value = ''
@@ -171,7 +175,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
 
   // Handle delete a source attachment from DB
   const handleDeleteSourceMedia = async (mediaId: string) => {
-    if (!window.confirm('確定要從裝置中刪除此張/段比對素材嗎？這也將會使使用了此素材的舊比對紀錄無法預覽。')) return
+    if (!window.confirm(t('comparisonConfirmDeleteMedia'))) return
     try {
       await deleteMediaItem(mediaId)
       if (leftMediaId === mediaId) setLeftMediaId('')
@@ -196,15 +200,15 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
   const handleSaveComparison = () => {
     if (!pet) return
     if (!leftMediaId || !rightMediaId) {
-      setValidationError('請務必選擇兩個不同的素材進行比對。')
+      setValidationError(t('comparisonChooseTwo'))
       return
     }
     if (isTypeMismatch) {
-      setValidationError('無法混合照片與影片進行比對。請更換為相同類型的素材。')
+      setValidationError(t('comparisonTypeMismatch'))
       return
     }
     if (isDuplicatePair) {
-      setValidationError('請選擇兩個不同的素材進行比對。')
+      setValidationError(t('comparisonChooseTwo'))
       return
     }
 
@@ -225,11 +229,11 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
     setLeftMediaId('')
     setRightMediaId('')
     setValidationError('')
-    alert('🎉 視覺比對紀錄已成功保存，並同步更新到健康時間軸！')
+    alert(t('comparisonSaved'))
   }
 
   const handleDeleteComparison = (id: string) => {
-    if (!pet || !window.confirm('確定要刪除這筆視覺比對紀錄嗎？素材檔案不會被刪除。')) return
+    if (!pet || !window.confirm(t('comparisonConfirmDeleteRecord'))) return
     deleteVisualComparison(pet.id, id)
     setComparisons(getVisualComparisons(pet.id))
   }
@@ -259,14 +263,14 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
     return (
       <div style={{ padding: '24px', textAlign: 'center', background: '#fbf8f3', minHeight: '100vh', color: '#173f3b' }}>
         <header style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer' }} aria-label="返回今日看板">
+          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer' }} aria-label={t('reminderBackDashboard')}>
             <ArrowLeft size={24} color="#173f3b" />
           </button>
-          <h1 style={{ margin: 0, fontSize: '20px' }}>視覺比對</h1>
+          <h1 style={{ margin: 0, fontSize: '20px' }}>{t('comparisonTitle')}</h1>
         </header>
         <div style={{ background: '#fff', borderRadius: '16px', padding: '32px 16px', border: '1px solid #f2e9dc' }}>
-          <h3>⚠️ 未選擇毛孩</h3>
-          <p>請先回到今日看板建立或點選一隻毛孩檔案，才能為其記錄視覺比對。</p>
+          <h3>⚠️ {t('reminderNoPetTitle')}</h3>
+          <p>{t('comparisonNoPetBody')}</p>
         </div>
       </div>
     )
@@ -300,27 +304,26 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
       />
 
       <header style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }} aria-label="返回今日看板">
+        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }} aria-label={t('reminderBackDashboard')}>
           <ArrowLeft size={24} color="#173f3b" />
         </button>
         <div>
-          <span style={{ fontSize: '11px', color: '#d3a665', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>視覺比對</span>
+          <span style={{ fontSize: '11px', color: '#d3a665', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('comparisonTitle')}</span>
           <h1 style={{ margin: 0, fontSize: '22px', color: '#173f3b', fontWeight: 'bold' }}>
-            {pet.name} 的視覺比對
+            {interpolate(t('comparisonPetTitle'), { pet: pet.name })}
           </h1>
         </div>
       </header>
 
       {/* Safety statement Banner */}
       <div style={{ background: '#edf4f2', border: '1.5px solid #dce7e4', borderRadius: '14px', padding: '14px', marginBottom: '20px', fontSize: '13.5px', lineHeight: '1.6', color: '#2b4d45' }}>
-        ⚠️ <b>視覺安全提示：</b>
-        視覺比對僅協助飼主觀察變化，不提供疾病診斷；如有持續或急性異常，請聯絡獸醫。
+        ⚠️ <b>{t('comparisonSafetyTitle')}</b>{t('comparisonSafetyBody')}
       </div>
 
       {/* Segment 1: Pairing Studio */}
       <section style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '16px', color: '#173f3b', marginBottom: '12px', borderLeft: '4px solid #d3a665', paddingLeft: '8px', fontWeight: 'bold' }}>
-          建立新比對
+          {t('comparisonCreate')}
         </h2>
 
         {/* Selected Pair Preview Area */}
@@ -328,7 +331,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
           {/* Left item slot */}
           <div style={{ background: '#fff', borderRadius: '16px', border: leftMediaId ? '2px solid #d3a665' : '1.5px dashed #dce7e4', padding: '12px', textAlign: 'center', minHeight: '160px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
             <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#8c6020', background: '#fdf8f0', padding: '3px 8px', borderRadius: '20px', alignSelf: 'center', marginBottom: '8px' }}>
-              過去
+              {t('comparisonPast')}
             </span>
 
             {leftItem && savedMedia[leftMediaId] ? (
@@ -349,7 +352,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                   />
                 )}
                 <small style={{ fontSize: '11px', color: '#5e746f', marginTop: '6px', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '100%', whiteSpace: 'nowrap' }}>
-                  📅 {new Date(leftItem.metadata.createdAt).toLocaleDateString('zh-TW')}
+                  📅 {formatDate(leftItem.metadata.createdAt, locale)}
                 </small>
                 <button
                   onClick={() => setLeftMediaId('')}
@@ -361,7 +364,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
             ) : (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#a0b2ae' }}>
                 <Plus size={24} />
-                <span style={{ fontSize: '12px', marginTop: '6px' }}>選擇過去照片或影片</span>
+                <span style={{ fontSize: '12px', marginTop: '6px' }}>{t('comparisonSelectPast')}</span>
               </div>
             )}
           </div>
@@ -369,7 +372,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
           {/* Right item slot */}
           <div style={{ background: '#fff', borderRadius: '16px', border: rightMediaId ? '2px solid #d3a665' : '1.5px dashed #dce7e4', padding: '12px', textAlign: 'center', minHeight: '160px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
             <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#173f3b', background: '#eef5f3', padding: '3px 8px', borderRadius: '20px', alignSelf: 'center', marginBottom: '8px' }}>
-              現在
+              {t('comparisonNow')}
             </span>
 
             {rightItem && savedMedia[rightMediaId] ? (
@@ -390,7 +393,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                   />
                 )}
                 <small style={{ fontSize: '11px', color: '#5e746f', marginTop: '6px', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '100%', whiteSpace: 'nowrap' }}>
-                  📅 {new Date(rightItem.metadata.createdAt).toLocaleDateString('zh-TW')}
+                  📅 {formatDate(rightItem.metadata.createdAt, locale)}
                 </small>
                 <button
                   onClick={() => setRightMediaId('')}
@@ -402,7 +405,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
             ) : (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#a0b2ae' }}>
                 <Plus size={24} />
-                <span style={{ fontSize: '12px', marginTop: '6px' }}>選擇現在照片或影片</span>
+                <span style={{ fontSize: '12px', marginTop: '6px' }}>{t('comparisonSelectNow')}</span>
               </div>
             )}
           </div>
@@ -412,14 +415,14 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
         {isTypeMismatch && (
           <div style={{ background: '#fff5f5', border: '1px solid #e05a47', borderRadius: '12px', padding: '10px 14px', marginBottom: '14px', color: '#e05a47', fontSize: '13px', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <Warning size={18} weight="fill" />
-            <span><b>格式不符：</b> 暫不支援照片與影片混合比對，請選擇同類型的素材。</span>
+            <span><b>{t('comparisonMismatchTitle')}</b> {t('comparisonMismatchBody')}</span>
           </div>
         )}
 
         {isDuplicatePair && (
           <div style={{ background: '#fff5f5', border: '1px solid #e05a47', borderRadius: '12px', padding: '10px 14px', marginBottom: '14px', color: '#e05a47', fontSize: '13px', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <Warning size={18} weight="fill" />
-            <span><b>素材重複：</b> 過去與現在不可選擇同一張照片或同一段影片。</span>
+            <span><b>{t('comparisonDuplicateTitle')}</b> {t('comparisonDuplicateBody')}</span>
           </div>
         )}
 
@@ -427,20 +430,20 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
         {leftItem && rightItem && !isTypeMismatch && !isDuplicatePair && (
           <div style={{ background: '#fff', borderRadius: '18px', padding: '16px', border: '1px solid #f2e9dc', marginBottom: '16px', boxShadow: '0 4px 16px rgba(111, 78, 55, 0.04)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <b style={{ fontSize: '15px' }}>🔍 即時互動比對：</b>
+              <b style={{ fontSize: '15px' }}>🔍 {t('comparisonInteractive')}</b>
               {pairedType === 'photo' && (
                 <div style={{ display: 'flex', background: '#f5f5f5', padding: '4px', borderRadius: '8px', gap: '4px' }}>
                   <button
                     onClick={() => setComparisonMode('side-by-side')}
                     style={{ padding: '6px 12px', border: 'none', background: comparisonMode === 'side-by-side' ? '#fff' : 'none', color: '#173f3b', fontSize: '12px', borderRadius: '6px', fontWeight: comparisonMode === 'side-by-side' ? 'bold' : 'normal', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
-                    <Rows size={14} /> 左右
+                    <Rows size={14} /> {t('comparisonSideBySide')}
                   </button>
                   <button
                     onClick={() => setComparisonMode('slider')}
                     style={{ padding: '6px 12px', border: 'none', background: comparisonMode === 'slider' ? '#fff' : 'none', color: '#173f3b', fontSize: '12px', borderRadius: '6px', fontWeight: comparisonMode === 'slider' ? 'bold' : 'normal', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
-                    <Sliders size={14} /> 重疊滑動
+                    <Sliders size={14} /> {t('comparisonSlider')}
                   </button>
                 </div>
               )}
@@ -453,18 +456,18 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', height: '100%', gap: '1px', background: '#333' }}>
                     <div style={{ position: 'relative', height: '100%' }}>
                       <img src={savedMedia[leftMediaId]?.url} alt="Past" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                      <span style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '10px', padding: '3px 8px', borderRadius: '4px' }}>過去: {new Date(leftItem.metadata.createdAt).toLocaleDateString()}</span>
+                      <span style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '10px', padding: '3px 8px', borderRadius: '4px' }}>{t('comparisonPast')}: {formatDate(leftItem.metadata.createdAt, locale)}</span>
                     </div>
                     <div style={{ position: 'relative', height: '100%' }}>
                       <img src={savedMedia[rightMediaId]?.url} alt="Present" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                      <span style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '10px', padding: '3px 8px', borderRadius: '4px' }}>現在: {new Date(rightItem.metadata.createdAt).toLocaleDateString()}</span>
+                      <span style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '10px', padding: '3px 8px', borderRadius: '4px' }}>{t('comparisonNow')}: {formatDate(rightItem.metadata.createdAt, locale)}</span>
                     </div>
                   </div>
                 ) : (
                   <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                     {/* Background image: Right (Present) */}
                     <img src={savedMedia[rightMediaId]?.url} alt="Present" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
-                    <span style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '10px', padding: '3px 8px', borderRadius: '4px', zIndex: 1 }}>現在: {new Date(rightItem.metadata.createdAt).toLocaleDateString()}</span>
+                    <span style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '10px', padding: '3px 8px', borderRadius: '4px', zIndex: 1 }}>{t('comparisonNow')}: {formatDate(rightItem.metadata.createdAt, locale)}</span>
 
                     {/* Sliding overlay image: Left (Past) */}
                     <div style={{ position: 'absolute', top: 0, left: 0, width: `${sliderValue}%`, height: '100%', overflow: 'hidden', borderRight: '2px solid #fff' }}>
@@ -479,7 +482,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                           maxWidth: 'none',
                         }}
                       />
-                      <span style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '10px', padding: '3px 8px', borderRadius: '4px', whiteSpace: 'nowrap' }}>過去: {new Date(leftItem.metadata.createdAt).toLocaleDateString()}</span>
+                      <span style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '10px', padding: '3px 8px', borderRadius: '4px', whiteSpace: 'nowrap' }}>{t('comparisonPast')}: {formatDate(leftItem.metadata.createdAt, locale)}</span>
                     </div>
 
                     {/* Interactive slider */}
@@ -517,7 +520,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                       style={{ width: '100%', height: '160px', objectFit: 'contain' }}
                       playsInline
                     />
-                    <span style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '9px', padding: '2px 6px', borderRadius: '4px' }}>過去: {new Date(leftItem.metadata.createdAt).toLocaleDateString()}</span>
+                    <span style={{ position: 'absolute', bottom: '6px', left: '6px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '9px', padding: '2px 6px', borderRadius: '4px' }}>{t('comparisonPast')}: {formatDate(leftItem.metadata.createdAt, locale)}</span>
                   </div>
                   <div style={{ position: 'relative' }}>
                     <video
@@ -526,7 +529,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                       style={{ width: '100%', height: '160px', objectFit: 'contain' }}
                       playsInline
                     />
-                    <span style={{ position: 'absolute', bottom: '6px', right: '6px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '9px', padding: '2px 6px', borderRadius: '4px' }}>現在: {new Date(rightItem.metadata.createdAt).toLocaleDateString()}</span>
+                    <span style={{ position: 'absolute', bottom: '6px', right: '6px', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '9px', padding: '2px 6px', borderRadius: '4px' }}>{t('comparisonNow')}: {formatDate(rightItem.metadata.createdAt, locale)}</span>
                   </div>
                 </div>
 
@@ -549,7 +552,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                     }}
                   >
                     {videosPlaying ? <Pause size={16} weight="fill" /> : <Play size={16} weight="fill" />}
-                    {videosPlaying ? '暫停播放' : '同步播放'}
+                    {videosPlaying ? t('comparisonPause') : t('comparisonPlaySync')}
                   </button>
                 </div>
               </div>
@@ -563,7 +566,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
             {/* Category selection list */}
             <div style={{ marginBottom: '14px' }}>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>
-                比對重點類別
+                {t('comparisonCategory')}
               </label>
               <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px' }}>
                 {VISUAL_COMPARISON_CATEGORIES.map((cat) => {
@@ -594,7 +597,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
             {/* Notes textarea */}
             <div style={{ marginBottom: '14px' }}>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>
-                飼主親身觀察備忘（選填）
+                {t('comparisonNotesOptional')}
               </label>
               <textarea
                 value={note}
@@ -602,7 +605,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                   setValidationError('')
                   setNote(e.target.value)
                 }}
-                placeholder="例如：今天走路抖動比上次明顯，吃藥後有減緩..."
+                placeholder={t('comparisonNotesPlaceholder')}
                 style={{
                   width: '100%',
                   minHeight: '70px',
@@ -645,7 +648,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                 boxShadow: '0 6px 14px rgba(211, 166, 101, 0.2)',
               }}
             >
-              <FloppyDisk size={18} /> 保存此視覺比對紀錄
+              <FloppyDisk size={18} /> {t('comparisonSave')}
             </button>
           </div>
         )}
@@ -654,51 +657,51 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
         <div style={{ background: '#fff', borderRadius: '18px', padding: '16px', border: '1px solid #f2e9dc' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 'bold' }}>
-              素材媒體池
+              {t('comparisonMediaPool')}
             </h3>
             <div style={{ display: 'flex', gap: '6px' }}>
               <button
                 onClick={() => cameraInputRef.current?.click()}
                 style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #dce7e4', background: '#fff', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                title="拍照"
+                title={t('comparisonTakePhoto')}
               >
-                <Camera size={14} color="#d3a665" /> 拍照
+                <Camera size={14} color="#d3a665" /> {t('comparisonTakePhoto')}
               </button>
               <button
                 onClick={() => videoInputRef.current?.click()}
                 style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #dce7e4', background: '#fff', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                title="錄影"
+                title={t('comparisonRecordVideo')}
               >
-                <VideoCamera size={14} color="#d3a665" /> 錄影
+                <VideoCamera size={14} color="#d3a665" /> {t('comparisonRecordVideo')}
               </button>
               <button
                 onClick={() => galleryInputRef.current?.click()}
                 style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #dce7e4', background: '#fff', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                title="選擇"
+                title={t('comparisonChoose')}
               >
-                <Image size={14} color="#d3a665" /> 相簿
+                <Image size={14} color="#d3a665" /> {t('comparisonGallery')}
               </button>
             </div>
           </div>
 
           {isUploading && (
             <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#d3a665', fontWeight: 'bold' }}>
-              ⏳ 素材處理中...
+              ⏳ {t('comparisonProcessing')}
             </p>
           )}
 
           {mediaList.length === 0 ? (
             <div style={{ padding: '24px', textAlign: 'center', color: '#a0b2ae', fontSize: '13px' }}>
-              目前素材池尚無任何照片或影片。
+              {t('comparisonMediaEmpty')}
               <br />
               <span style={{ fontSize: '12px', color: '#5e746f' }}>
-                💡 請點選上方按鈕新增照片或錄影，作為對比素材！
+                💡 {t('comparisonMediaEmptyHelp')}
               </span>
             </div>
           ) : (
             <div>
               <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#5e746f' }}>
-                💡 請分別點擊卡片左、右下角的<b>「設過去」</b>、<b>「設現在」</b>來配置比對素材：
+                💡 {t('comparisonMediaHelpPrefix')}<b>{t('comparisonSetPast')}</b>、<b>{t('comparisonSetNow')}</b>{t('comparisonMediaHelpSuffix')}
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
                 {mediaList.map((item) => {
@@ -736,7 +739,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                         <button
                           onClick={() => handleDeleteSourceMedia(item.id)}
                           style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(255,255,255,0.85)', color: '#e05a47', border: 'none', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                          title="刪除"
+                          title={t('reminderDeleteTitle')}
                         >
                           ×
                         </button>
@@ -745,7 +748,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                       {/* Display dates & slots buttons */}
                       <div style={{ padding: '6px 4px', background: '#fff', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <div style={{ fontSize: '9px', color: '#5e746f', textAlign: 'center', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {new Date(item.metadata.createdAt).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })} ({isPhoto ? '照片' : '影片'})
+                          {formatDate(item.metadata.createdAt, locale, { month: 'numeric', day: 'numeric' })} ({isPhoto ? t('settingsPhotos') : t('memoryVideoAria')})
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px' }}>
                           <button
@@ -764,7 +767,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                               cursor: 'pointer',
                             }}
                           >
-                            設過去
+                            {t('comparisonSetPast')}
                           </button>
                           <button
                             onClick={() => {
@@ -782,7 +785,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                               cursor: 'pointer',
                             }}
                           >
-                            設現在
+                            {t('comparisonSetNow')}
                           </button>
                         </div>
                       </div>
@@ -798,12 +801,12 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
       {/* Segment 2: Historical Comparisons History */}
       <section>
         <h2 style={{ fontSize: '16px', color: '#173f3b', marginBottom: '12px', borderLeft: '4px solid #d3a665', paddingLeft: '8px', fontWeight: 'bold' }}>
-          歷史比對紀錄
+          {t('comparisonHistory')}
         </h2>
 
         {comparisons.length === 0 ? (
           <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', textAlign: 'center', border: '1px solid #f2e9dc', color: '#5e746f', fontSize: '13.5px' }}>
-            尚無任何比對歷史紀錄。快去上方挑選素材，保存你的第一筆對比紀錄吧！
+            {t('comparisonHistoryEmpty')}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -814,7 +817,8 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
               const isLeftMissing = !leftMeta || !savedMedia[comp.leftAttachmentId]
               const isRightMissing = !rightMeta || !savedMedia[comp.rightAttachmentId]
 
-              const compCat = VISUAL_COMPARISON_CATEGORIES.find((c) => c.key === comp.category) || { label: '其他', icon: '⚠️' }
+              const compCat = VISUAL_COMPARISON_CATEGORIES.find((c) => c.key === comp.category) || { label: t('speciesOther'), icon: '⚠️' }
+              const compLabel = categoryLabels[comp.category] || compCat.label
 
               return (
                 <article
@@ -829,13 +833,13 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#173f3b' }}>
-                      {compCat.icon} {compCat.label} 比對
+                      {compCat.icon} {interpolate(t('comparisonRecordTitle'), { category: compLabel })}
                     </span>
                     <button
                       onClick={() => handleDeleteComparison(comp.id)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: '#e05a47', fontSize: '13px' }}
                     >
-                      <Trash size={15} /> 刪除
+                      <Trash size={15} /> {t('reminderDeleteTitle')}
                     </button>
                   </div>
 
@@ -851,7 +855,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                     <div style={{ border: '1px solid #dce7e4', borderRadius: '10px', overflow: 'hidden', background: '#f9f9f9', height: '100px', position: 'relative' }}>
                       {isLeftMissing ? (
                         <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: '#9e3224', background: '#fdf2f0', padding: '6px', textAlign: 'center' }}>
-                          ⚠️ 素材已丟失
+                          ⚠️ {t('comparisonMediaMissing')}
                         </div>
                       ) : (
                         <>
@@ -861,7 +865,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                             <video src={savedMedia[comp.leftAttachmentId].url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted playsInline />
                           )}
                           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '9px', textAlign: 'center', padding: '2px 0' }}>
-                            過去: {new Date(leftMeta.createdAt).toLocaleDateString()}
+                            {t('comparisonPast')}: {formatDate(leftMeta.createdAt, locale)}
                           </div>
                         </>
                       )}
@@ -871,7 +875,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                     <div style={{ border: '1px solid #dce7e4', borderRadius: '10px', overflow: 'hidden', background: '#f9f9f9', height: '100px', position: 'relative' }}>
                       {isRightMissing ? (
                         <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: '#9e3224', background: '#fdf2f0', padding: '6px', textAlign: 'center' }}>
-                          ⚠️ 素材已丟失
+                          ⚠️ {t('comparisonMediaMissing')}
                         </div>
                       ) : (
                         <>
@@ -881,7 +885,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                             <video src={savedMedia[comp.rightAttachmentId].url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted playsInline />
                           )}
                           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '9px', textAlign: 'center', padding: '2px 0' }}>
-                            現在: {new Date(rightMeta.createdAt).toLocaleDateString()}
+                            {t('comparisonNow')}: {formatDate(rightMeta.createdAt, locale)}
                           </div>
                         </>
                       )}
@@ -889,7 +893,7 @@ export default function VisualComparisonView({ pet, onBack }: VisualComparisonVi
                   </div>
 
                   <div style={{ marginTop: '10px', fontSize: '10.5px', color: '#5e746f', textAlign: 'right' }}>
-                    📅 比對建立時間: {new Date(comp.createdAt).toLocaleString()}
+                    📅 {t('comparisonCreatedAt')}: {formatDate(comp.createdAt, locale)} {formatTime(comp.createdAt, locale)}
                   </div>
                 </article>
               )

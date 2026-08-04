@@ -47,7 +47,7 @@ export function EventCard({
           <div className="ai-summary-placeholder" style={{ background: '#fff9ee', border: '1px dashed #f2e1cc', borderRadius: '8px', padding: '8px 10px', fontSize: '11px', color: '#b27a30', display: 'flex', gap: '4px', marginTop: '4px' }}>
             <Sparkle size={14} weight="fill" style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
-              <strong>{t('aiSummaryTitle')} (預留)：</strong>
+              <strong>{t('aiSummaryTitle')} ({t('communityReserved')})：</strong>
               <span>{aiSummary}</span>
             </div>
           </div>

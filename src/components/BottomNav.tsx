@@ -12,7 +12,7 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
   const { t } = useTranslation()
 
   return (
-    <nav className="bottom-nav" aria-label="主要導覽" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
+    <nav className="bottom-nav" aria-label={t('navPrimaryAria')} style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
       <button className={active === 'care' ? 'active' : ''} onClick={() => onChange('care')}>
         <i><House size={22} weight={active === 'care' ? 'fill' : 'regular'} /></i><span style={{ fontSize: '11px' }}>{t('navToday' as any)}</span>
       </button>

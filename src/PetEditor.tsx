@@ -4,6 +4,7 @@ import { Image, Trash } from '@phosphor-icons/react'
 import type { Pet } from './domain'
 import { prepareLocalPhoto } from './local-photo'
 import { centerPhotoTransform, movePhotoPosition, nudgePhotoPosition, photoPanPercent } from './photo-position'
+import { useTranslation } from './i18n/translations'
 
 type Props = { pet?: Pet; onClose: () => void; onSave: (pet: Pet) => Promise<void>; onDelete?: (pet: Pet) => Promise<void> }
 type CropTarget = 'avatar' | 'cover'
@@ -30,6 +31,7 @@ function useBlobUrl(blob?: Blob) {
 }
 
 export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
+  const { t } = useTranslation()
   const [source, setSource] = useState<Blob | undefined>(pet?.avatarPhoto)
   const [cover, setCover] = useState<Blob | undefined>(pet?.coverPhoto)
   const url = useBlobUrl(source)
@@ -77,7 +79,7 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
       setY(50)
       setZoom(1)
     } catch (error) {
-      setPhotoError(error instanceof Error ? error.message : '照片處理失敗，請改選較小的照片。')
+      setPhotoError(error instanceof Error ? error.message : t('photoProcessingFailed'))
     } finally {
       setPreparing(false)
     }
@@ -93,7 +95,7 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
       setCoverY(50)
       setCoverZoom(1)
     } catch (error) {
-      setPhotoError(error instanceof Error ? error.message : '照片處理失敗，請改選較小的照片。')
+      setPhotoError(error instanceof Error ? error.message : t('photoProcessingFailed'))
     } finally {
       setPreparing(false)
     }
@@ -188,7 +190,7 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
       name: String(formData.get('name')),
       species,
       birthDate: String(formData.get('birthDate') || ''),
-      avatar: pet?.avatar || (species === '貓咪' ? '🐱' : species === '兔兔' ? '🐰' : species === '鳥類' ? '🐦' : '🐶'),
+      avatar: pet?.avatar || (species === t('speciesCat') ? '🐱' : species === t('speciesRabbit') ? '🐰' : species === t('speciesBird') ? '🐦' : '🐶'),
       avatarPhoto: source,
       avatarMimeType: source?.type,
       avatarPosition: { x, y, zoom },
@@ -196,7 +198,7 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
       coverMimeType: cover?.type,
       coverPosition: { x: coverX, y: coverY, zoom: coverZoom },
       microchipNumber: String(formData.get('microchipNumber') || ''),
-      microchipStatus: String(formData.get('microchipStatus') || '未植入'),
+      microchipStatus: String(formData.get('microchipStatus') || t('microchipStatusNotImplanted')),
       lastScanDate: String(formData.get('lastScanDate') || ''),
       emergencyContact: String(formData.get('emergencyContact') || ''),
       vetHospital: String(formData.get('vetHospital') || ''),
@@ -205,13 +207,13 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
     setSaving(false)
   }
 
-  return <div className="sheet-backdrop"><section className="editor-sheet pet-editor"><header><div><span>LOCAL PET PROFILE</span><h2>{pet ? '編輯毛孩檔案' : '建立我的毛孩'}</h2></div><button className="close" onClick={onClose}>×</button></header><form action={submit}>
+  return <div className="sheet-backdrop"><section className="editor-sheet pet-editor"><header><div><span>LOCAL PET PROFILE</span><h2>{pet ? t('editPetProfile') : t('createMyPet')}</h2></div><button className="close" onClick={onClose}>×</button></header><form action={submit}>
     <div className="avatar-workspace">
       <div
         ref={avatarPreview}
         className={`avatar-preview ${url ? 'draggable-photo' : ''} ${dragging === 'avatar' ? 'dragging' : ''}`}
         tabIndex={url ? 0 : undefined}
-        aria-label={url ? '頭像裁切預覽，按住照片拖曳位置，或使用方向鍵微調' : undefined}
+        aria-label={url ? t('avatarCropAria') : undefined}
         onPointerDown={(event) => url && startDrag('avatar', event)}
         onPointerMove={(event) => continueDrag('avatar', event)}
         onPointerUp={(event) => finishDrag('avatar', event)}
@@ -222,36 +224,36 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
           <img
             draggable={false}
             src={url}
-            alt="頭像裁切預覽"
+            alt={t('avatarCropPreviewAlt')}
             style={{
               objectPosition: `${x}% ${y}%`,
               transform: `translate3d(${avatarPan.x}%, ${avatarPan.y}%, 0) scale(${zoom})`,
               transformOrigin: '50% 50%',
             }}
           />
-          <span className="drag-photo-hint" aria-hidden="true">按住拖曳</span>
+          <span className="drag-photo-hint" aria-hidden="true">{t('dragToPan')}</span>
         </> : <span>{pet?.avatar || '🐾'}</span>}
       </div>
       <div>
-        <label className="photo-picker"><Image />{preparing ? '照片處理中…' : '選擇頭像照片'}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={preparing} onChange={(event) => void chooseAvatar(event.target.files?.[0])} /></label>
-        {source && <button type="button" className="remove-avatar" onClick={() => setSource(undefined)}>改用圖示</button>}
+        <label className="photo-picker"><Image />{preparing ? t('processingPhoto') : t('selectAvatarPhoto')}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={preparing} onChange={(event) => void chooseAvatar(event.target.files?.[0])} /></label>
+        {source && <button type="button" className="remove-avatar" onClick={() => setSource(undefined)}>{t('useIconInstead')}</button>}
       </div>
     </div>
     {photoError && <p className="field-error photo-error">{photoError}</p>}
     {source && <fieldset className="crop-controls">
-      <legend>調整頭像</legend>
-      <p>照片已在手機本機縮小處理。按住照片上下左右拖曳，大小使用下方滑桿調整。</p>
-      <div className="crop-toolbar"><button type="button" onClick={() => recenter('avatar')}>恢復置中與大小</button></div>
-      <label>照片大小 <input type="range" min="1" max="2.5" step="0.05" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} /></label>
+      <legend>{t('adjustAvatar')}</legend>
+      <p>{t('avatarCropInstructions')}</p>
+      <div className="crop-toolbar"><button type="button" onClick={() => recenter('avatar')}>{t('resetCrop')}</button></div>
+      <label>{t('photoSize')} <input type="range" min="1" max="2.5" step="0.05" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} /></label>
     </fieldset>}
     <fieldset className="cover-editor">
-      <legend>首頁封面照片</legend>
-      <p>選圖後會在手機本機自動縮小，再按住照片拖曳取景。</p>
+      <legend>{t('homeCoverPhoto')}</legend>
+      <p>{t('coverCropInstructions')}</p>
       <div
         ref={coverPreview}
         className={`cover-preview ${coverUrl ? 'draggable-photo' : ''} ${dragging === 'cover' ? 'dragging' : ''}`}
         tabIndex={coverUrl ? 0 : undefined}
-        aria-label={coverUrl ? '首頁封面裁切預覽，按住照片拖曳位置，或使用方向鍵微調' : undefined}
+        aria-label={coverUrl ? t('coverCropAria') : undefined}
         onPointerDown={(event) => coverUrl && startDrag('cover', event)}
         onPointerMove={(event) => continueDrag('cover', event)}
         onPointerUp={(event) => finishDrag('cover', event)}
@@ -262,95 +264,95 @@ export default function PetEditor({ pet, onClose, onSave, onDelete }: Props) {
           <img
             draggable={false}
             src={coverUrl}
-            alt="首頁封面預覽"
+            alt={t('coverCropPreviewAlt')}
             style={{
               objectPosition: `${coverX}% ${coverY}%`,
               transform: `translate3d(${coverPan.x}%, ${coverPan.y}%, 0) scale(${coverZoom})`,
               transformOrigin: '50% 50%',
             }}
           />
-          <span className="drag-photo-hint" aria-hidden="true">按住拖曳</span>
-        </> : <span><Image size={34} />尚未選擇首頁照片</span>}
+          <span className="drag-photo-hint" aria-hidden="true">{t('dragToPan')}</span>
+        </> : <span><Image size={34} />{t('noHomeCoverSelected')}</span>}
       </div>
       <div className="cover-actions">
-        <label className="photo-picker"><Image />{preparing ? '照片處理中…' : '選擇首頁照片'}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={preparing} onChange={(event) => void chooseCover(event.target.files?.[0])} /></label>
-        {cover && <button type="button" className="remove-avatar" onClick={() => setCover(undefined)}>移除封面</button>}
+        <label className="photo-picker"><Image />{preparing ? t('processingPhoto') : t('selectHomeCoverPhoto')}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={preparing} onChange={(event) => void chooseCover(event.target.files?.[0])} /></label>
+        {cover && <button type="button" className="remove-avatar" onClick={() => setCover(undefined)}>{t('removeCover')}</button>}
       </div>
       {cover && <div className="cover-controls">
-        <div className="crop-toolbar"><button type="button" onClick={() => recenter('cover')}>恢復置中與大小</button></div>
-        <label>照片大小<input type="range" min="1" max="2" step=".05" value={coverZoom} onChange={(event) => setCoverZoom(Number(event.target.value))} /></label>
+        <div className="crop-toolbar"><button type="button" onClick={() => recenter('cover')}>{t('resetCrop')}</button></div>
+        <label>{t('photoSize')}<input type="range" min="1" max="2" step=".05" value={coverZoom} onChange={(event) => setCoverZoom(Number(event.target.value))} /></label>
       </div>}
     </fieldset>
     {/* 🐶 Basic Information */}
     <div className="cozy-editor-card card-basic premium-editor-card">
-      <h3>🐶 核心基本資料</h3>
+      <h3>🐶 {t('coreBasicInfo')}</h3>
       <div className="two-fields">
-        <label className="required-field">名字 (必填)
-          <input name="name" defaultValue={pet?.name} required placeholder="例如：哈吉" style={{ fontSize: '16px', padding: '10px 12px', borderLeft: '4px solid var(--honey)' }} />
+        <label className="required-field">{t('nameRequired')}
+          <input name="name" defaultValue={pet?.name} required placeholder={t('placeholderHaji')} style={{ fontSize: '16px', padding: '10px 12px', borderLeft: '4px solid var(--honey)' }} />
         </label>
-        <label>種類
-          <select name="species" defaultValue={pet?.species || '狗狗'} style={{ fontSize: '16px', padding: '10px 12px' }}>
-            <option>狗狗</option>
-            <option>貓咪</option>
-            <option>兔兔</option>
-            <option>鳥類</option>
-            <option>其他</option>
+        <label>{t('speciesLabel')}
+          <select name="species" defaultValue={pet?.species || t('speciesDog')} style={{ fontSize: '16px', padding: '10px 12px' }}>
+            <option>{t('speciesDog')}</option>
+            <option>{t('speciesCat')}</option>
+            <option>{t('speciesRabbit')}</option>
+            <option>{t('speciesBird')}</option>
+            <option>{t('speciesOther')}</option>
           </select>
         </label>
       </div>
-      <label>生日（選填）
+      <label>{t('birthDateOptional')}
         <input type="date" name="birthDate" defaultValue={pet?.birthDate} style={{ fontSize: '16px', padding: '10px 12px' }} />
       </label>
     </div>
 
     {/* 💉 Medical Information */}
     <div className="cozy-editor-card card-medical">
-      <h3>💉 醫療與晶片資訊</h3>
+      <h3>{t('medicalAndMicrochipInfo')}</h3>
       <div className="two-fields">
-        <label>晶片號碼（選填）
-          <input name="microchipNumber" defaultValue={pet?.microchipNumber} placeholder="例如：900138291..." style={{ fontSize: '16px', padding: '10px 12px' }} />
+        <label>{t('microchipNumberOptional')}
+          <input name="microchipNumber" defaultValue={pet?.microchipNumber} placeholder={t('microchipNumberPlaceholder')} style={{ fontSize: '16px', padding: '10px 12px' }} />
         </label>
-        <label>晶片登記狀態
-          <select name="microchipStatus" defaultValue={pet?.microchipStatus || '未植入'} style={{ fontSize: '16px', padding: '10px 12px' }}>
-            <option>已登記</option>
-            <option>未登記</option>
-            <option>未植入</option>
+        <label>{t('microchipRegistrationStatus')}
+          <select name="microchipStatus" defaultValue={pet?.microchipStatus || t('microchipStatusNotImplanted')} style={{ fontSize: '16px', padding: '10px 12px' }}>
+            <option>{t('microchipStatusRegistered')}</option>
+            <option>{t('microchipStatusNotRegistered')}</option>
+            <option>{t('microchipStatusNotImplanted')}</option>
           </select>
         </label>
       </div>
-      <label>最後掃描日期（選填）
+      <label>{t('lastScanDateOptional')}
         <input type="date" name="lastScanDate" defaultValue={pet?.lastScanDate} style={{ fontSize: '16px', padding: '10px 12px' }} />
       </label>
-      <label>主治醫院 / 醫師（選填）
-        <input name="vetHospital" defaultValue={pet?.vetHospital} placeholder="例如：安心動物醫院 林醫師" style={{ fontSize: '16px', padding: '10px 12px' }} />
+      <label>{t('vetHospitalOptional')}
+        <input name="vetHospital" defaultValue={pet?.vetHospital} placeholder={t('placeholderVetHospital')} style={{ fontSize: '16px', padding: '10px 12px' }} />
       </label>
     </div>
 
     {/* 📞 Emergency */}
     <div className="cozy-editor-card card-emergency">
-      <h3>📞 緊急聯絡</h3>
-      <label>緊急聯絡人與電話（選填）
-        <input name="emergencyContact" defaultValue={pet?.emergencyContact} placeholder="例如：媽媽 0912-345-678" style={{ fontSize: '16px', padding: '10px 12px' }} />
+      <h3>{t('emergencyContactTitle')}</h3>
+      <label>{t('emergencyContactOptional')}
+        <input name="emergencyContact" defaultValue={pet?.emergencyContact} placeholder={t('placeholderEmergencyContact')} style={{ fontSize: '16px', padding: '10px 12px' }} />
       </label>
     </div>
 
     {/* 📝 Notes */}
     <div className="cozy-editor-card card-notes">
-      <h3>📝 備註與過敏史</h3>
-      <label>醫療備註事項（選填）
-        <textarea name="medicalNotes" defaultValue={pet?.medicalNotes} placeholder="例如：對盤尼西林過敏、不喜歡剪指甲" style={{ fontSize: '16px', padding: '10px 12px', minHeight: '90px', fontFamily: 'inherit', lineHeight: '1.5' }} />
+      <h3>📝 {t('notesAndAllergies')}</h3>
+      <label>{t('medicalNotesOptional')}
+        <textarea name="medicalNotes" defaultValue={pet?.medicalNotes} placeholder={t('placeholderMedicalNotes')} style={{ fontSize: '16px', padding: '10px 12px', minHeight: '90px', fontFamily: 'inherit', lineHeight: '1.5' }} />
       </label>
     </div>
 
-    <div className="privacy-note" style={{ fontSize: '13px', color: '#888', margin: '14px 0', textAlign: 'center' }}>毛孩照片與資料只保存在這台裝置</div>
+    <div className="privacy-note" style={{ fontSize: '13px', color: '#888', margin: '14px 0', textAlign: 'center' }}>{t('deviceOnlySaveHint')}</div>
 
     <button className="save-reminder" disabled={saving} style={{ fontSize: '17px', padding: '14px', borderRadius: '12px', fontWeight: 'bold' }}>
-      {saving ? '正在保存…' : '保存毛孩檔案'}
+      {saving ? t('savingDiaryBtn') : t('savePetProfile')}
     </button>
 
     {pet && onDelete && (
       <button type="button" className="delete-pet" onClick={() => void onDelete(pet)} style={{ marginTop: '16px', padding: '12px', borderRadius: '10px', fontSize: '14px' }}>
-        <Trash /> 刪除這隻毛孩與相關紀錄
+        <Trash /> {t('deletePetAndRecords')}
       </button>
     )}
   </form></section></div>

@@ -5,6 +5,8 @@ import { attachmentService } from './services/AttachmentService'
 import { timelineAggregationService, type UnifiedTimelineEvent } from './services/TimelineAggregationService'
 import { timelineMessageService } from './services/TimelineMessageService'
 import GrowthTracker from './GrowthTracker'
+import { interpolate, useTranslation } from './i18n/translations'
+import { formatDate, formatNumber, formatTime } from './i18n/formatters'
 
 type Props = {
   pet?: Pet
@@ -14,20 +16,6 @@ type Props = {
   onSaveGrowth: (record: GrowthRecord) => Promise<void>
   onDeleteGrowth: (record: GrowthRecord) => Promise<void>
   onExportVetReport: () => void
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  all: '全部生命故事',
-  Homecoming: '迎接回家 🏡',
-  Birthday: '生日慶祝 🎂',
-  Diary: '生活日記 📝',
-  FavoritePhoto: '精選照片 📸',
-  FavoriteVideo: '精選影片 🎥',
-  Weight: '體重記錄 ⚖',
-  Medication: '吃藥紀錄 💊',
-  Vaccination: '防護疫苗 ◇',
-  HealthEvent: '異常異變 🚨',
-  SeniorCare: '高齡觀察 🧓',
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -52,6 +40,10 @@ export default function HealthTimeline({
   onDeleteGrowth,
   onExportVetReport,
 }: Props) {
+  const { t, locale } = useTranslation()
+  const categoryLabels: Record<string, string> = {
+    all: t('timelineCategoryAll'), Homecoming: t('timelineCategoryHomecoming'), Birthday: t('timelineCategoryBirthday'), Diary: t('timelineCategoryDiary'), FavoritePhoto: t('timelineCategoryPhoto'), FavoriteVideo: t('timelineCategoryVideo'), Weight: t('timelineCategoryWeight'), Medication: t('timelineCategoryMedication'), Vaccination: t('timelineCategoryVaccination'), HealthEvent: t('timelineCategoryHealthEvent'), SeniorCare: t('timelineCategorySeniorCare'),
+  }
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [mediaBlobUrls, setMediaBlobUrls] = useState<Record<string, string>>({})
 
@@ -176,11 +168,11 @@ export default function HealthTimeline({
   const monthGroups = useMemo(() => {
     return filteredEvents.reduce<Record<string, UnifiedTimelineEvent[]>>((groups, event) => {
       const date = new Date(event.timestamp)
-      const key = new Intl.DateTimeFormat('zh-TW', { year: 'numeric', month: 'long' }).format(date)
+      const key = formatDate(date, locale, { year: 'numeric', month: 'long' })
       ;(groups[key] ||= []).push(event)
       return groups
     }, {})
-  }, [filteredEvents])
+  }, [filteredEvents, locale])
 
   // Safe navigation handler
   const handleEventClick = (event: UnifiedTimelineEvent) => {
@@ -207,7 +199,7 @@ export default function HealthTimeline({
   return (
     <section className="timeline-page" style={{ padding: '16px', background: '#fcf9f2', minHeight: '100vh', textAlign: 'left', fontFamily: 'inherit' }}>
       <header className="timeline-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '26px', color: '#173f3b', padding: '4px' }}>
+        <button onClick={onBack} aria-label={t('back')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '26px', color: '#173f3b', padding: '4px' }}>
           ‹
         </button>
         <div>
@@ -215,17 +207,17 @@ export default function HealthTimeline({
             PET LIFE ALBUM
           </span>
           <h1 style={{ margin: 0, fontSize: '22px', color: '#173f3b', fontWeight: 'bold' }}>
-            {pet?.name || '毛孩'}的生命故事相簿
+            {interpolate(t('timelineTitle'), { pet: pet?.name || t('genericPet') })}
           </h1>
           <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#5e746f' }}>
-            珍藏生活的每一刻。這裡自動匯聚體重、健康、異變與日常護理，織成溫煦的家庭手札。
+            {t('timelineSubtitle')}
           </p>
         </div>
       </header>
 
       {/* Safety warning copy in warm calm layout */}
       <div style={{ background: '#fffcf4', border: '1px solid #f2e1c1', borderRadius: '14px', padding: '14px', fontSize: '12px', color: '#8c6020', marginBottom: '20px', lineHeight: '1.5', boxShadow: '0 2px 8px rgba(139,96,32,0.02)' }}>
-        💡 <b>陪伴溫馨提示：</b>視覺比對與生命故事軌跡僅協助日常細心觀察變化，不提供疾病與醫療診斷；如有任何急性或不適異狀，請務必立即尋求獸醫診所診療。
+        💡 <b>{t('timelineSafetyTitle')}</b>{t('timelineSafetyBody')}
       </div>
 
       {/* Reusable "On This Day" Spotlight Area */}
@@ -242,10 +234,10 @@ export default function HealthTimeline({
             <span style={{ fontSize: '22px' }}>✨</span>
             <div>
               <h3 style={{ margin: 0, fontSize: '16px', color: '#8c4f2b', fontWeight: 'bold' }}>
-                當年的今天 (On This Day)
+                {t('timelineOnThisDay')}
               </h3>
               <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#9d7660' }}>
-                重溫過去與 {pet?.name} 的這一天，那些值得細細回味的溫暖時光：
+                {interpolate(t('timelineOnThisDayBody'), { pet: pet?.name || t('genericPet') })}
               </p>
             </div>
           </div>
@@ -273,7 +265,7 @@ export default function HealthTimeline({
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ fontSize: '11px', color: '#8c4f2b', fontWeight: 'bold' }}>
-                      ⏳ {yearsAgo} 年前的今天 ({eventDate.getFullYear()} 年)
+                      ⏳ {interpolate(t('timelineYearsAgo'), { years: formatNumber(yearsAgo, locale), year: formatNumber(eventDate.getFullYear(), locale) })}
                     </span>
                     <h4 style={{ margin: '4px 0', fontSize: '14px', color: '#173f3b', fontWeight: 'bold' }}>
                       {event.title}
@@ -297,7 +289,7 @@ export default function HealthTimeline({
       )}
 
       <button className="timeline-export" onClick={onExportVetReport} style={{ width: '100%', padding: '14px', borderRadius: '12px', background: '#173f3b', color: '#fff', border: 'none', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 12px rgba(23,63,59,0.1)' }}>
-        產生健康數據摘要 PDF 報告 <span style={{ fontSize: '12px', opacity: 0.8 }}>不含大容量多媒體檔</span>
+        {t('timelineExportPdf')} <span style={{ fontSize: '12px', opacity: 0.8 }}>{t('timelineExportPdfNote')}</span>
       </button>
 
       {/* Embedded Weight tracker form */}
@@ -306,9 +298,9 @@ export default function HealthTimeline({
       </div>
 
       {/* Timeline Dynamic category filters */}
-      <div className="timeline-filters" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', marginBottom: '24px', whiteSpace: 'nowrap' }} aria-label="篩選生命軌跡">
+      <div className="timeline-filters" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', marginBottom: '24px', whiteSpace: 'nowrap' }} aria-label={t('timelineFilterAria')}>
         {availableCategories.map((cat) => {
-          const label = CATEGORY_LABELS[cat] || cat
+          const label = categoryLabels[cat] || cat
           return (
             <button
               key={cat}
@@ -341,12 +333,11 @@ export default function HealthTimeline({
             <div className="timeline-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {items.map((event) => {
                 const date = new Date(event.timestamp)
-                const formattedTime = date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })
-                const dayLabel = date.getDate()
-                const weekdayLabel = date.toLocaleDateString('zh-TW', { weekday: 'short' })
+                const formattedTime = formatTime(date, locale, { hour: '2-digit', minute: '2-digit', hour12: false })
+                const formattedDate = formatDate(date, locale, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
 
                 // Generate emotion message from message service
-                const emotionMessage = timelineMessageService.getMessage(event.emotionType, pet?.name || '毛孩')
+                const emotionMessage = timelineMessageService.getMessage(event.emotionType, pet?.name || t('genericPet'))
 
                 // Card background with warm album layout
                 const cardBg = CATEGORY_COLORS[event.category] || '#fff'
@@ -440,15 +431,15 @@ export default function HealthTimeline({
                       {/* Date & Category header */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                         <span style={{ fontSize: '11px', color: '#d3a665', fontWeight: 'bold' }}>
-                          📅 {date.getFullYear()}年{date.getMonth()+1}月{dayLabel}日 ({weekdayLabel}) {formattedTime}
+                          📅 {formattedDate} {formattedTime}
                         </span>
                         {/* Render icon badge and favorite memory highlight indicator */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span style={{ fontSize: '11px', background: '#f4ede1', color: '#8c6020', padding: '3px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
-                            {CATEGORY_LABELS[event.category] || event.category}
+                            {categoryLabels[event.category] || event.category}
                           </span>
                           {isFavorite && !thumbUrl && (
-                            <span style={{ fontSize: '14px' }} title="珍貴回憶">⭐</span>
+                            <span style={{ fontSize: '14px' }} title={t('timelineFavoriteMemory')}>⭐</span>
                           )}
                         </div>
                       </div>
@@ -497,9 +488,9 @@ export default function HealthTimeline({
       ) : (
         <div className="timeline-empty" style={{ background: '#fff', borderRadius: '20px', padding: '40px 24px', textAlign: 'center', border: '1px solid #eedfc8', boxShadow: '0 4px 14px rgba(111,78,55,0.01)' }}>
           <i style={{ fontSize: '36px', color: '#d3a665', display: 'block', marginBottom: '12px' }}>♡</i>
-          <b style={{ fontSize: '16px', color: '#173f3b', fontWeight: 'bold' }}>今天又是平靜美好的一天</b>
+          <b style={{ fontSize: '16px', color: '#173f3b', fontWeight: 'bold' }}>{t('timelineEmptyTitle')}</b>
           <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#5e746f', lineHeight: '1.5' }}>
-            設定一個服藥提醒、記下一段成長體重，或是拍一張生活日記相片，陪伴的點滴就會自動呈現在這裡，匯聚成溫馨的生命手札。
+            {t('timelineEmptyBody')}
           </p>
         </div>
       )}

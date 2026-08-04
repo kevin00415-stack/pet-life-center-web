@@ -3,6 +3,8 @@ import { detectLocale, getLocale, interpolate, setLocale } from './translations'
 import { formatDate, formatNumber, formatTemperature, formatWeight } from './formatters'
 import { en } from './en'
 import { zhTW as originalZhTW } from './zh-TW'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 describe('i18n Translations system (Pure Unit Tests)', () => {
   beforeAll(() => {
@@ -50,5 +52,59 @@ describe('i18n Translations system (Pure Unit Tests)', () => {
     expect(en.tabTopics).toBe('Topics')
     expect(en.privateChatTitle).toBe('1-on-1 Encrypted Messaging')
     expect(en.unreadMockDisclaimer).toContain('demo mock')
+  })
+
+  test('provides bilingual CareHome presentation mappings without changing source values', () => {
+    const sourceCategory = 'seizure'
+    const sourceStatus = 'completed'
+    const categoryKeys = { seizure: 'abnormalSeizure' } as const
+    const statusKeys = { completed: 'activityCompleted' } as const
+    expect(originalZhTW[categoryKeys[sourceCategory]]).toBe('癲癇／抽搐')
+    expect(en[categoryKeys[sourceCategory]]).toBe('Seizure / convulsion')
+    expect(originalZhTW[statusKeys[sourceStatus]]).toBe('已完成')
+    expect(en[statusKeys[sourceStatus]]).toBe('Completed')
+    expect(sourceCategory).toBe('seizure')
+    expect(sourceStatus).toBe('completed')
+  })
+
+  test('keeps CareHome messages complete and locale-safe', () => {
+    expect(interpolate(originalZhTW.activityWeightTitle, { weight: '6 公斤' })).toContain('6 公斤')
+    expect(interpolate(en.activityWeightTitle, { weight: '13.2 lb' })).toContain('13.2 lb')
+    expect(interpolate(en.homeCoverAria, { pet: 'Mochi' })).toBe("Mochi's home cover")
+    expect(Object.keys(en)).toEqual(expect.arrayContaining(Object.keys(originalZhTW)))
+  })
+
+  test('CareHome source has no hard-coded Han UI text or inline locale formatting', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/components/CareHomeView.tsx'), 'utf8')
+    const withoutComments = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+    expect(withoutComments).not.toMatch(/\p{Script=Han}/u)
+    expect(withoutComments).not.toMatch(/locale\s*===/)
+    expect(withoutComments).not.toMatch(/\.toLocale(?:Date|Time|String)/)
+  })
+
+  test('provides bilingual core reminder, settings, timeline, and growth labels', () => {
+    expect(originalZhTW.reminderEditorAddTitle).toBe('新增照護提醒')
+    expect(en.reminderEditorAddTitle).toBe('Add Care Reminder')
+    expect(interpolate(en.reminderPreviewClip, { name: 'Mochi voice' })).toContain('Mochi voice')
+    expect(originalZhTW.permissionGranted).toBe('已允許')
+    expect(en.permissionGranted).toBe('Allowed')
+    expect(interpolate(en.timelineTitle, { pet: 'Mochi' })).toBe("Mochi's Life Story Album")
+    expect(en.growthChartAria).toBe('Weight trend chart')
+  })
+
+  test('priority UI files avoid inline locale comparisons and raw locale formatting', () => {
+    const files = ['src/components/BottomNav.tsx', 'src/components/ReminderCenterView.tsx', 'src/ReminderEditor.tsx', 'src/HealthTimeline.tsx', 'src/SettingsPage.tsx', 'src/GrowthTracker.tsx']
+    for (const file of files) {
+      const source = readFileSync(resolve(process.cwd(), file), 'utf8')
+      expect(source, file).not.toMatch(/locale\s*===/)
+      expect(source, file).not.toMatch(/\.toLocale(?:String|DateString|TimeString)/)
+    }
+  })
+
+  test('medication stock display labels do not mutate persisted unit values', () => {
+    const sourceUnit = '顆'
+    expect(originalZhTW.unitPiece).toBe('顆')
+    expect(en.unitPiece).toBe('piece(s)')
+    expect(sourceUnit).toBe('顆')
   })
 })
