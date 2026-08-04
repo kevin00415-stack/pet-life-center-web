@@ -27,4 +27,13 @@ describe('vet report', () => {
     expect(html).not.toContain('data:audio')
     expect(html).not.toContain('data:video')
   })
+
+  it('renders English report labels while preserving user-entered content', () => {
+    const html = buildVetReportHtml({ pet, reminders: [reminder], growthRecords: [growth], locale: 'en-US' })
+    expect(html).toContain('Veterinary Care Summary')
+    expect(html).toContain('Current medication reminders')
+    expect(html).toContain('心臟藥')
+    expect(html).toContain('6.2 kg')
+    expect(html).not.toContain('目前服藥提醒')
+  })
 })

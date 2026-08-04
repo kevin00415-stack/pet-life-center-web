@@ -2,20 +2,24 @@ import { ArrowRight, ShieldCheck } from '@phosphor-icons/react'
 import { useTranslation } from '../../i18n/translations'
 
 interface TopicCardProps {
+  id: string
   icon: string
   title: string
   description: string
   members: string
   moderator?: string
   isMock?: boolean
+  onEnter: (id: string) => void
 }
 
 export function TopicCard({
+  id,
   icon,
   title,
   description,
   members,
   moderator,
+  onEnter,
 }: TopicCardProps) {
   const { t } = useTranslation()
 
@@ -34,7 +38,11 @@ export function TopicCard({
         )}
       </div>
       <p style={{ margin: 0, fontSize: '13px', color: '#5e746f', lineHeight: '1.45' }}>{description}</p>
-      <button className="cozy-btn-small" style={{ width: '100%', border: '0', background: '#eef5f3', color: '#173f3b', padding: '8px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', marginTop: '6px', cursor: 'pointer', transition: 'background 0.2s' }}>
+      <button
+        className="cozy-btn-small enter-discussion-group-btn"
+        onClick={() => onEnter(id)}
+        style={{ width: '100%', border: '0', background: '#eef5f3', color: '#173f3b', padding: '8px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', marginTop: '6px', cursor: 'pointer', transition: 'background 0.2s' }}
+      >
         {t('enterGroup')} <ArrowRight size={13} weight="bold" style={{ marginLeft: '4px', verticalAlign: 'middle' }} />
       </button>
     </div>

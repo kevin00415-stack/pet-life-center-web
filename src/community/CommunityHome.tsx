@@ -6,20 +6,42 @@ import { BroadcastCard } from './components/BroadcastCard'
 import { EventCard } from './components/EventCard'
 import { PrivateChatView } from './components/PrivateChatView'
 import { CommunityTabs } from './components/CommunityTabs'
-import { useTranslation } from '../i18n/translations'
-import { mockUnreadChat } from './community-data'
+import { alternateLocale, useTranslation } from '../i18n/translations'
+import { mockUnreadChat, mockTopics, mockBroadcasts, mockEvents } from './community-data'
+import { GroupDetailView } from './components/GroupDetailView'
 
 interface CommunityHomeProps {
   onBack: () => void
 }
 
 export default function CommunityHome({ onBack }: CommunityHomeProps) {
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(() => {
+    const hash = typeof window !== 'undefined' ? window.location.hash : ''
+    if (hash.startsWith('#/community/group/')) {
+      return hash.replace('#/community/group/', '')
+    }
+    return null
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handleHash = () => {
+      const hash = window.location.hash
+      if (hash.startsWith('#/community/group/')) {
+        setActiveGroupId(hash.replace('#/community/group/', ''))
+      } else {
+        setActiveGroupId(null)
+      }
+    }
+    window.addEventListener('hashchange', handleHash)
+    return () => window.removeEventListener('hashchange', handleHash)
+  }, [])
   const { t, locale, changeLocale } = useTranslation()
   const [activeTab, setActiveTab] = useState<CommunityTab>('topics')
-  const [topics, setTopics] = useState<CommunityTopic[]>([])
-  const [broadcasts, setBroadcasts] = useState<CommunityBroadcast[]>([])
-  const [events, setEvents] = useState<CommunityEvent[]>([])
-  const [loading, setLoading] = useState(true)
+  const [topics, setTopics] = useState<CommunityTopic[]>(mockTopics)
+  const [broadcasts, setBroadcasts] = useState<CommunityBroadcast[]>(mockBroadcasts)
+  const [events, setEvents] = useState<CommunityEvent[]>(mockEvents)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
 
   useEffect(() => {
@@ -54,6 +76,21 @@ export default function CommunityHome({ onBack }: CommunityHomeProps) {
     }
   }, [])
 
+  const currentTopic = activeGroupId ? topics.find((t) => t.id === activeGroupId) : null
+
+  if (currentTopic) {
+    return (
+      <section className="community-home-page" style={{ padding: '16px 16px 80px 16px' }}>
+        <GroupDetailView
+          topic={currentTopic}
+          onBack={() => {
+            window.location.hash = '#/community'
+          }}
+        />
+      </section>
+    )
+  }
+
   return (
     <section className="community-home-page" style={{ paddingBottom: '80px' }}>
       <header className="timeline-header" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -62,11 +99,11 @@ export default function CommunityHome({ onBack }: CommunityHomeProps) {
 
           {/* Simple language switch button for localized user testing */}
           <button
-            onClick={() => changeLocale(locale === 'zh-TW' ? 'en' : 'zh-TW')}
+            onClick={() => changeLocale(alternateLocale(locale))}
             style={{ fontSize: '12px', background: '#eef3f1', color: '#173f3b', border: '1px solid #dcdfdc', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', marginRight: '16px', fontWeight: 'bold' }}
-            title="Switch Language"
+            title={t('switchLanguage')}
           >
-            {locale === 'zh-TW' ? 'English' : '繁體中文'}
+            {t('switchLanguage')}
           </button>
         </div>
 
@@ -104,11 +141,15 @@ export default function CommunityHome({ onBack }: CommunityHomeProps) {
                 {topics.map((cat) => (
                   <TopicCard
                     key={cat.id}
+                    id={cat.id}
                     icon={cat.icon}
                     title={cat.title}
                     description={cat.description}
                     members={cat.members}
                     moderator={cat.moderator}
+                    onEnter={(id) => {
+                      window.location.hash = '#/community/group/' + id
+                    }}
                   />
                 ))}
               </div>
