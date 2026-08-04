@@ -376,7 +376,7 @@ export function CareHomeView({
       {!pet ? (
         <section className="first-pet-onboarding">
           <img src={brandMark} alt={t('brandLogoAlt')} />
-          <span>WELCOME HOME</span>
+          <span>{t('onboardingEyebrow')}</span>
           <h1>{t('onboardingTitle')}</h1>
           <p>{t('onboardingDesc')}</p>
           <button onClick={() => setEditingPet('new')}><Plus size={22} weight="bold" />{t('createFirstPet')}</button>
@@ -482,15 +482,15 @@ export function CareHomeView({
           {/* Today Record Status card (Medications & Meals) */}
           <div style={{ background: '#fff', padding: '14px', borderRadius: '16px', border: '1px solid #f2e9dc', boxShadow: '0 4px 10px rgba(111,78,55,0.02)' }}>
             <span style={{ fontSize: '11px', color: '#5e746f', fontWeight: 'bold', display: 'block' }}>{t('mealMedicationProgress')}</span>
-            <div style={{ margin: '8px 0', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ margin: '8px 0', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span>💊 {t('medicationProgress')}</span>
+                <span style={{ whiteSpace: 'nowrap' }}>💊 {t('medicationProgress')}</span>
                 <span style={{ fontWeight: 'bold', color: hasMedToday ? '#173f3b' : '#5e746f' }}>
                   {hasMedToday ? t('recorded') : t('notRecordedToday')}
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span>🥣 {t('mealProgress')}</span>
+                <span style={{ whiteSpace: 'nowrap' }}>🥣 {t('mealProgress')}</span>
                 <span style={{ fontWeight: 'bold', color: hasMealToday ? '#173f3b' : '#5e746f' }}>
                   {hasMealToday ? t('recorded') : t('notRecordedToday')}
                 </span>

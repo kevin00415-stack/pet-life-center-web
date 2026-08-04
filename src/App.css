@@ -532,6 +532,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .game-actions small{font-size:12px}
   .cozy-home .quick-grid{grid-template-columns:1fr}
   .bottom-nav{padding-left:10px;padding-right:10px}
+  .bottom-nav button span{font-size:10px!important;white-space:nowrap}
 }
 
 /* Final personalized-home override: keep the reminder below, never over the pet photo. */

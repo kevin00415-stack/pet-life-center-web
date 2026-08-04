@@ -35,10 +35,17 @@
 
 ## Viewport QA
 
-程式建置與靜態響應式規則已驗證，但本輪工具未提供可可靠完成 390×844、tablet、desktop 三尺寸互動截圖與逐頁操作的瀏覽器自動化證據，因此不宣稱真機或完整視覺驗收通過。需在部署預覽或可用瀏覽器工作階段補驗：英文長字串、bottom navigation、modal、safe-area、橫向捲動、PDF 列印與 attachment controls。
+I18N Visual Acceptance Gate 已於 PR #9 head `92ee47d4113b5a00a4ecc4b47420b3d966664cd1` 完成。Cloudflare check 對應 preview 為 `https://31c0702b.pet-life-center-web.pages.dev`；因自動化執行環境禁止 Playwright 直接連外，互動矩陣使用同一 commit 的本機 Vite preview 驗證。
+
+- Playwright：12/12 通過，涵蓋 390×844、768×1024、1440×900，以及 zh-TW／en-US。
+- 畫面：Public Website、建立毛孩、CareHome、Settings、Memories、Health Timeline、Community、Reminder Center、Senior Care、Event Center、Visual Comparison。
+- 驗證：語言 `html[lang]`、重新載入後語言／本機資料持續存在、水平溢位、被裁切文字／控制項、底部導覽與主要頁面往返。
+- 證據：`docs/evidence/i18n-visual-gate/` 共 66 張 PNG（每個 viewport／語言 11 張）。
+- P1 修正：首頁 `WELCOME HOME` 移入 i18n；390px 英文底部 `Community` 保持單行；健康摘要 `Medication` 不再斷字。
+- 未在這個自動化案例中宣稱完成：真機 safe-area、系統通知／權限、PDF 系統列印對話框、相機／麥克風／大型附件 OS 整合。這些仍屬真機發佈驗收。
 
 ## 風險分級
 
 - P0：無已知編譯、測試或資料相容性阻塞。
-- P1：三種 viewport 的人工／瀏覽器逐頁視覺驗收尚未完成；Protected GuardianTodayService 產生文字的英文 UI-boundary 顯示需在實際核心流程驗收中特別確認。
-- P2：i18n 後主 bundle 超過 500 kB；依任務要求留待 post-i18n code-splitting optimization，本次不拆包。
+- P1：本輪已驗證的視覺與語言流程無未解決 P1。真機通知、系統列印與媒體權限仍由發佈 smoke test 驗收。
+- P2：主 bundle 664.60 kB（gzip 192.90 kB），超過 Vite 500 kB 提示；依任務範圍留待後續 code-splitting optimization，本次不拆包。

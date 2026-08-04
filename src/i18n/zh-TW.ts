@@ -153,6 +153,7 @@ export const zhTW = {
   voiceClipLabel: '● 自訂語音',
   noDetails: '尚未填寫備註',
   createFirstPet: '建立第一位毛孩',
+  onboardingEyebrow: '歡迎回家',
   onboardingTitle: '先建立你的毛孩',
   onboardingDesc: '輸入名字、照片與生日後，首頁、提醒、健康時間軸和回憶相簿都會變成牠的專屬空間。',
   onboardingFootnote: '資料只保存在這台裝置，不會自動上傳。',

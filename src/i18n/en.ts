@@ -155,6 +155,7 @@ export const en: Record<keyof typeof zhTW, string> = {
   voiceClipLabel: '● Voice Alert',
   noDetails: 'No description written',
   createFirstPet: 'Create Your First Pet',
+  onboardingEyebrow: 'WELCOME HOME',
   onboardingTitle: 'Set Up Your Pet Profile First',
   onboardingDesc: 'Once you input name, photo and birth date, the dashboard, calendar, health timeline, and memory album will adapt to your pet.',
   onboardingFootnote: 'Your pet data is saved strictly on this local device and is never uploaded.',
