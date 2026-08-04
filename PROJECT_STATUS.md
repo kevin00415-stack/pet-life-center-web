@@ -1,6 +1,8 @@
 # 毛孩生活中心單機版 App
 
-目前版本：0.22.0（首頁品牌美編完成，待手機視覺驗收）
+目前版本：0.22.0（Guardian OS Jules 基準；Global Launch Foundation 開發中）
+
+> 正式品牌：毛孩生活中心（Pet Life Center）。核准平台為 PWA + Capacitor Android/iOS。舊文件中的「毛孩一生」或「不做原生殼」不再代表目前產品方向。
 
 ## v0.22.0（2026-07-23）
 

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import './App.css'
 import ReminderEditor from './ReminderEditor'
 import VetVisitPanel from './VetVisitPanel'
@@ -7,6 +7,7 @@ import MemoriesPage from './MemoriesPage'
 import PetEditor from './PetEditor'
 import CareCalendar from './CareCalendar'
 import SettingsPage from './SettingsPage'
+import ReminderCenterView from './components/ReminderCenterView'
 import RelaxPage from './RelaxPage'
 import CommunityHome from './community/CommunityHome'
 import type { CareReminder, VoiceClip, MemoryEntry, Pet, ReminderKind, GrowthRecord } from './domain'
@@ -35,8 +36,13 @@ import { BottomNav, type View } from './components/BottomNav'
 import { usePets } from './hooks/usePets'
 import { useAlarmController } from './hooks/useAlarmController'
 import { CareHomeView } from './components/CareHomeView'
+import SeniorCareView from './components/SeniorCareView'
+import EventCenterView from './components/EventCenterView'
+import VisualComparisonView from './components/VisualComparisonView'
+import { interpolate, useTranslation } from './i18n/translations'
 
 export default function App() {
+  const { t } = useTranslation()
   const {
     pets,
     reminders,
@@ -64,7 +70,69 @@ export default function App() {
   const [filter, setFilter] = useState<'today' | 'upcoming' | 'all'>('today')
   const [toast, setToast] = useState('')
   const [openVetVisit, setOpenVetVisit] = useState<CareReminder | null>(null)
-  const [view, setView] = useState<View>('care')
+  const [editingReminder, setEditingReminder] = useState<CareReminder | null>(null)
+  const [showCalendarView, setShowCalendarView] = useState(false)
+
+  const [view, setView] = useState<View>(() => {
+    const hash = window.location.hash
+    if (hash.startsWith('#/community')) return 'community'
+    if (hash === '#/health') return 'health'
+    if (hash === '#/memories') return 'memories'
+    if (hash === '#/calendar') return 'calendar'
+    if (hash === '#/settings') return 'settings'
+    if (hash === '#/relax') return 'relax'
+    if (hash === '#/senior') return 'senior'
+    if (hash === '#/event') return 'event'
+    if (hash === '#/visual-comparison') return 'visual-comparison'
+    return 'care'
+  })
+
+  // Synchronize view changes to hash
+  useEffect(() => {
+    const hash = window.location.hash
+    if (view === 'community') {
+      if (!hash.startsWith('#/community')) {
+        window.location.hash = '#/community'
+      }
+    } else {
+      let targetHash = '#/' + view
+      if (view === 'care') targetHash = '#/'
+      if (hash !== targetHash) {
+        window.location.hash = targetHash
+      }
+    }
+  }, [view])
+
+  // Synchronize hash changes back to view state
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash
+      if (hash.startsWith('#/community')) {
+        setView('community')
+      } else if (hash === '#/health') {
+        setView('health')
+      } else if (hash === '#/memories') {
+        setView('memories')
+      } else if (hash === '#/calendar') {
+        setView('calendar')
+      } else if (hash === '#/settings') {
+        setView('settings')
+      } else if (hash === '#/relax') {
+        setView('relax')
+      } else if (hash === '#/senior') {
+        setView('senior')
+      } else if (hash === '#/event') {
+        setView('event')
+      } else if (hash === '#/visual-comparison') {
+        setView('visual-comparison')
+      } else {
+        setView('care')
+      }
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
   const [editingPet, setEditingPet] = useState<Pet | 'new' | null>(null)
   const restoreInput = useRef<HTMLInputElement>(null)
 
@@ -93,10 +161,10 @@ export default function App() {
     setEditorKind(null)
     notify(
       result.status === 'scheduled'
-        ? `已在手機排定 ${result.count} 個提醒`
+        ? interpolate(t('appReminderScheduled'), { count: result.count })
         : result.status === 'denied'
-          ? '提醒已保存，請到手機設定開啟通知權限'
-          : '提醒已保存在這台裝置',
+          ? t('appReminderPermissionNeeded')
+          : t('appReminderSavedLocal'),
     )
   }
 
@@ -135,12 +203,12 @@ export default function App() {
     await refresh()
     notify(
       needsRefill && status !== 'skipped'
-        ? `已記錄，${reminder.title}只剩 ${remaining} ${reminder.medicationStock?.unit}`
+        ? interpolate(t('appStockRemaining'), { title: reminder.title, remaining, unit: reminder.medicationStock?.unit || '' })
         : status === 'late'
-          ? '已記錄補吃，完成率已更新'
+          ? t('appLateRecorded')
           : status === 'skipped'
-            ? '已記錄本次未服用'
-            : '已記錄完成，辛苦了',
+            ? t('appSkippedRecorded')
+            : t('appCompletedRecorded'),
     )
   }
 
@@ -149,31 +217,31 @@ export default function App() {
   }
 
   async function remove(reminder: CareReminder) {
-    if (!window.confirm(`確定刪除「${reminder.title}」提醒嗎？`)) return
+    if (!window.confirm(interpolate(t('appConfirmDeleteReminder'), { title: reminder.title }))) return
     await cancelCareReminder(reminder)
     await deleteReminder(reminder.id)
     await refresh()
-    notify('提醒已刪除')
+    notify(t('appReminderDeleted'))
   }
 
   async function saveVetVisit(reminder: CareReminder) {
     await saveReminder(reminder)
     await refresh()
     setOpenVetVisit(null)
-    notify('看診準備與紀錄已保存在手機')
+    notify(t('appVetSaved'))
   }
 
   async function addMemory(memory: MemoryEntry) {
     await saveMemory(memory)
     await refresh()
-    notify('回憶已保存在這台手機')
+    notify(t('appMemorySaved'))
   }
 
   async function removeMemory(memory: MemoryEntry) {
-    if (!window.confirm(`確定刪除「${memory.title}」這篇回憶嗎？`)) return
+    if (!window.confirm(interpolate(t('appConfirmDeleteMemory'), { title: memory.title }))) return
     await deleteMemory(memory.id)
     await refresh()
-    notify('回憶已刪除')
+    notify(t('appMemoryDeleted'))
   }
 
   async function updatePet(profile: Pet) {
@@ -181,30 +249,30 @@ export default function App() {
     await refresh()
     setActivePet(profile.id)
     setEditingPet(null)
-    notify('毛孩檔案已保存在這台手機')
+    notify(t('appPetSaved'))
   }
 
   async function removePet(profile: Pet) {
-    if (!window.confirm(`確定刪除「${profile.name}」嗎？相關提醒、回憶與健康紀錄也會一併刪除。此動作無法復原。`)) return
+    if (!window.confirm(interpolate(t('appConfirmDeletePet'), { name: profile.name }))) return
     const relatedReminders = reminders.filter((item) => item.petId === profile.id)
     await Promise.all(relatedReminders.map(cancelCareReminder))
     await deletePetData(profile.id)
     setEditingPet(null)
     await refresh()
-    notify('毛孩與相關資料已刪除')
+    notify(t('appPetDeleted'))
   }
 
   async function addGrowth(record: GrowthRecord) {
     await saveGrowthRecord(record)
     await refresh()
-    notify('成長紀錄已保存在手機')
+    notify(t('appGrowthSaved'))
   }
 
   async function removeGrowth(record: { id: string }) {
-    if (!window.confirm('確定刪除體重紀錄嗎？')) return
+    if (!window.confirm(t('appConfirmDeleteGrowth'))) return
     await deleteGrowthRecord(record.id)
     await refresh()
-    notify('成長紀錄已刪除')
+    notify(t('appGrowthDeleted'))
   }
 
   async function snooze(reminder: CareReminder) {
@@ -214,10 +282,10 @@ export default function App() {
     const result = await scheduleSnooze(reminder, targetPet, 10)
     notify(
       result === 'scheduled'
-        ? '已安排10分鐘後再次提醒'
+        ? t('appSnoozed')
         : result === 'denied'
-          ? '請先開啟手機通知權限'
-          : 'App版本會在10分鐘後提醒',
+          ? t('appNotificationPermission')
+          : t('appSnoozedInApp'),
     )
   }
 
@@ -226,30 +294,30 @@ export default function App() {
     const url = URL.createObjectURL(new Blob([content], { type: 'application/json;charset=utf-8' }))
     const link = document.createElement('a')
     link.href = url
-    link.download = `毛孩生活中心-單機備份-${new Date().toISOString().slice(0, 10)}.json`
+    link.download = interpolate(t('appBackupFileName'), { date: new Date().toISOString().slice(0, 10) })
     document.body.appendChild(link)
     link.click()
     link.remove()
     window.setTimeout(() => URL.revokeObjectURL(url), 1500)
-    notify('完整備份檔已下載；此檔案請用 App 的「恢復資料」開啟')
+    notify(t('appBackupDownloaded'))
   }
 
   function exportVetPdf() {
-    if (!pet) return notify('請先建立或選擇一隻毛孩')
+    if (!pet) return notify(t('appSelectPetFirst'))
     const opened = openVetReport({ pet, reminders, growthRecords })
-    notify(opened ? '請在列印畫面選擇「儲存為 PDF」或分享' : '瀏覽器阻止開啟摘要，請允許彈出視窗後再試')
+    notify(opened ? t('appPdfOpened') : t('appPdfBlocked'))
   }
 
   async function importData(file?: File) {
     if (!file) return
-    const confirmed = window.confirm('確定要恢復資料嗎？這將會清除您目前裝置上的所有毛孩檔案、提醒、日記與成長紀錄，並覆蓋為備份檔中的資料。此動作無法復原。')
+    const confirmed = window.confirm(t('appConfirmRestore'))
     if (!confirmed) return
     try {
       await restoreBackup(await file.text())
       await refresh()
-      notify('完整資料已恢復')
+      notify(t('appRestoreComplete'))
     } catch {
-      notify('這個檔案不是有效的毛孩生活中心備份')
+      notify(t('appRestoreInvalid'))
     }
   }
 
@@ -293,12 +361,83 @@ export default function App() {
   if (view === 'calendar') {
     return (
       <main className="app-shell">
-        <CareCalendar
-          pet={pet}
-          reminders={reminders}
-          onBack={() => setView('care')}
-          onComplete={(reminder, occurrence) => recordOccurrence(reminder, occurrence, 'completed')}
-        />
+        {showCalendarView ? (
+          <div>
+            <div style={{ padding: '16px', background: '#fbf8f3' }}>
+              <button
+                onClick={() => setShowCalendarView(false)}
+                style={{
+                  padding: '10px 18px',
+                  borderRadius: '12px',
+                  background: '#173f3b',
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                }}
+              >
+                ← {t('appBackReminderCenter')}
+              </button>
+            </div>
+            <CareCalendar
+              pet={pet}
+              reminders={reminders}
+              onBack={() => setShowCalendarView(false)}
+              onComplete={(reminder, occurrence) => recordOccurrence(reminder, occurrence, 'completed')}
+            />
+          </div>
+        ) : (
+          <div>
+            <div style={{ padding: '16px 16px 0 16px', background: '#fbf8f3', textAlign: 'right' }}>
+              <button
+                onClick={() => setShowCalendarView(true)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  background: '#d3a665',
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                }}
+              >
+                📅 {t('appSwitchCalendar')}
+              </button>
+            </div>
+            <ReminderCenterView
+              pets={pets}
+              pet={pet}
+              activePet={activePet}
+              setActivePet={setActivePet}
+              reminders={reminders}
+              voices={voices}
+              onBack={() => setView('care')}
+              onComplete={async (reminder, occurrence) => {
+                await recordOccurrence(reminder, occurrence, 'completed')
+                await refresh()
+              }}
+              onSkip={async (reminder, occurrence) => {
+                await recordOccurrence(reminder, occurrence, 'skipped')
+                await refresh()
+              }}
+              onSnooze={async (reminder, _occurrence, minutes) => {
+                if (pet) {
+                  await scheduleSnooze(reminder, pet, minutes)
+                  await refresh()
+                }
+              }}
+              onDelete={async (reminderId) => {
+                await deleteReminder(reminderId)
+                await refresh()
+                notify(t('appReminderDeleteSuccess'))
+              }}
+              onCreateNew={(kind) => setEditorKind(kind)}
+              onEditExisting={(reminder) => setEditingReminder(reminder)}
+            />
+          </div>
+        )}
         {nav}
       </main>
     )
@@ -338,6 +477,41 @@ export default function App() {
       </main>
     )
   }
+  if (view === 'senior') {
+    return (
+      <main className="app-shell">
+        <SeniorCareView
+          pet={pet}
+          todayMedication={todayMedication}
+          recordOccurrence={recordOccurrence}
+          onBack={() => setView('care')}
+        />
+        {nav}
+      </main>
+    )
+  }
+  if (view === 'event') {
+    return (
+      <main className="app-shell">
+        <EventCenterView
+          pet={pet}
+          onBack={() => setView('care')}
+        />
+        {nav}
+      </main>
+    )
+  }
+  if (view === 'visual-comparison') {
+    return (
+      <main className="app-shell">
+        <VisualComparisonView
+          pet={pet}
+          onBack={() => setView('care')}
+        />
+        {nav}
+      </main>
+    )
+  }
 
   return (
     <>
@@ -370,9 +544,12 @@ export default function App() {
         exportData={exportData}
         restoreInputRef={restoreInput}
         importData={importData}
+        growthRecords={growthRecords}
+        reminders={reminders}
         nav={nav}
       />
       {editorKind && pet && <ReminderEditor pets={pets} initialKind={editorKind} voices={voices} onClose={() => setEditorKind(null)} onSave={addReminder} />}
+      {editingReminder && pet && <ReminderEditor pets={pets} initialKind={editingReminder.kind} voices={voices} editingReminder={editingReminder} onClose={() => setEditingReminder(null)} onSave={async (rem, voice) => { await addReminder(rem, voice); setEditingReminder(null); }} />}
       {openVetVisit && <VetVisitPanel reminder={openVetVisit} onClose={() => setOpenVetVisit(null)} onSave={saveVetVisit} />}
       {editingPet && <PetEditor pet={editingPet === 'new' ? undefined : editingPet} onClose={() => setEditingPet(null)} onSave={updatePet} onDelete={removePet} />}
       {toast && <div className="toast">{toast}</div>}

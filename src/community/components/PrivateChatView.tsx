@@ -15,7 +15,7 @@ export function PrivateChatView({ isMock = true }: PrivateChatViewProps) {
         {t('privateChatDesc')}
       </p>
       <div style={{ background: '#fbf4e8', border: '1px solid #f2e9dc', padding: '12px 14px', borderRadius: '10px', fontSize: '12px', color: '#b27a30', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-        <span>🔒 {t('privateChatPre')} {isMock ? '(預留)' : ''}</span>
+        <span>🔒 {t('privateChatPre')} {isMock ? `(${t('communityReserved')})` : ''}</span>
       </div>
       {isMock && (
         <div style={{ fontSize: '10px', color: '#aaa', marginTop: '14px' }}>

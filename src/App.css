@@ -105,6 +105,26 @@
   --honey:#d5a14e;
   --terracotta:#b8734e;
   --shadow:0 16px 38px rgba(92,68,45,.14);
+
+  /* Shared UI Scale Tokens */
+  --space-xs:4px;
+  --space-sm:8px;
+  --space-md:16px;
+  --space-lg:24px;
+  --space-xl:32px;
+  --radius-sm:8px;
+  --radius-md:16px;
+  --radius-lg:24px;
+  --radius-xl:32px;
+  --font-xs:12px;
+  --font-sm:14px;
+  --font-md:16px;
+  --font-lg:18px;
+  --font-xl:24px;
+  --font-xxl:32px;
+  --font-semibold:600;
+  --font-bold:700;
+  --font-heavy:800;
 }
 
 body{background:#e9dfd1;color:var(--ink)}
@@ -512,6 +532,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .game-actions small{font-size:12px}
   .cozy-home .quick-grid{grid-template-columns:1fr}
   .bottom-nav{padding-left:10px;padding-right:10px}
+  .bottom-nav button span{font-size:10px!important;white-space:nowrap}
 }
 
 /* Final personalized-home override: keep the reminder below, never over the pet photo. */
@@ -842,4 +863,433 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   outline: none;
   border-color: #d3a665;
   box-shadow: 0 0 0 3px rgba(211, 166, 101, 0.12);
+}
+
+/* --- Today Dashboard Premium Visual Upgrade CSS --- */
+.pet-hero-container {
+  position: relative;
+  margin-top: 14px;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  background: var(--cream-deep);
+}
+
+.pet-hero-container .island-hero {
+  height: 240px;
+  position: relative;
+  overflow: hidden;
+  background: #efe2cf;
+}
+
+.pet-hero-container .island-hero:not(.custom-pet-cover) img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  background: #efe2cf;
+  transform: none !important;
+}
+
+.pet-hero-container .island-hero.custom-pet-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pet-hero-overlay {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: linear-gradient(180deg, rgba(251,244,232,0.92) 0%, rgba(251,244,232,1) 100%);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--line);
+}
+
+.pet-hero-avatar-wrapper {
+  margin-top: -46px;
+  position: relative;
+  z-index: 2;
+}
+
+.pet-hero-meta {
+  flex: 1;
+}
+
+.pet-hero-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.pet-hero-title h2 {
+  font-size: 24px;
+  font-weight: var(--font-heavy);
+  color: var(--ink);
+  margin: 0;
+}
+
+.pet-species-badge {
+  font-size: var(--font-xs);
+  background: var(--cream-deep);
+  color: var(--muted);
+  padding: 2px 10px;
+  border-radius: 30px;
+  font-weight: var(--font-bold);
+  border: 1.5px solid var(--line);
+}
+
+.pet-hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stat-pill {
+  font-size: 13px;
+  font-weight: var(--font-semibold);
+  color: var(--muted);
+  background: rgba(111, 145, 167, 0.08);
+  padding: 4px 10px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Emergency Shortcut Shield Card */
+.emergency-shield-card {
+  margin-top: 16px;
+  border: 2px solid #e28e83;
+  border-radius: 22px;
+  background: #fff5f2;
+  padding: 16px 18px;
+  box-shadow: 0 10px 24px rgba(226, 142, 131, 0.12);
+}
+
+.shield-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px dashed #f2cdc7;
+  padding-bottom: 10px;
+}
+
+.shield-icon {
+  color: var(--terracotta);
+}
+
+.shield-header h3 {
+  font-size: 16px;
+  font-weight: var(--font-heavy);
+  color: #74352b;
+  margin: 0;
+}
+
+.shield-header p {
+  font-size: 12px;
+  color: #a06e66;
+  margin: 2px 0 0;
+}
+
+.shield-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shield-row {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #64443f;
+}
+
+.shield-row strong {
+  color: #8c3b2e;
+}
+
+.shield-row.contact-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffebe5;
+  padding: 8px 12px;
+  border-radius: 12px;
+  color: #8c3b2e;
+  font-weight: var(--font-bold);
+  border: 1px solid #f2ccc2;
+}
+
+.shield-row.contact-row span {
+  font-size: 14.5px;
+}
+
+/* Upgraded Companion Feature Card styles */
+.game-actions button.upgraded-card {
+  min-height: 125px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 16px 14px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-align: left;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.game-actions button.upgraded-card:active {
+  transform: scale(0.96);
+  box-shadow: 0 6px 14px rgba(92,68,45,0.08);
+}
+
+.feature-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.feature-card-header i {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+}
+
+.feature-card-header i img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.card-badge {
+  font-size: 11px;
+  font-weight: var(--font-heavy);
+  color: var(--muted);
+  background: var(--cream);
+  padding: 2px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+.card-badge.highlight {
+  color: #ae741d;
+  background: #fff7e6;
+  border-color: #ffd899;
+}
+
+.game-actions button.upgraded-card b {
+  font-size: 15px;
+  font-weight: var(--font-bold);
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.game-actions button.upgraded-card small {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.action-counter-dot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #e28e83;
+  color: #fff;
+  font-size: 11px;
+  font-weight: var(--font-heavy);
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 10px rgba(226, 142, 131, 0.4);
+}
+
+/* Mobile Adjustments for Upgraded Dashboard */
+@media (max-width: 560px) {
+  .pet-hero-container .island-hero {
+    height: 180px;
+  }
+  .pet-hero-overlay {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+  .pet-hero-avatar-wrapper {
+    margin-top: -36px;
+  }
+  .pet-hero-title h2 {
+    font-size: 20px;
+  }
+}
+
+/* --- Upgraded Daily Journal Visual CSS --- */
+.upgraded-diary-card {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+
+.diary-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.diary-card-header time {
+  font-size: 13px;
+  font-weight: var(--font-bold);
+  color: var(--muted);
+}
+
+.mood-badge {
+  font-size: 12px;
+  background: var(--cream);
+  color: var(--ink);
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  font-weight: var(--font-bold);
+}
+
+.visual-journal-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+  border-top: 1px dashed var(--line);
+  border-bottom: 1px dashed var(--line);
+  padding: 12px 0;
+}
+
+.journal-pill {
+  font-size: 12.5px;
+  font-weight: var(--font-semibold);
+  color: var(--ink);
+  background: var(--cream);
+  padding: 5px 11px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.journal-pill.danger-pill {
+  background: #fff5f2;
+  border-color: #f2ccc2;
+  color: #8c3b2e;
+}
+
+.clean-note-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+  margin-top: 10px;
+}
+
+.delete-diary-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 14px 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #b28a83;
+  font-size: 12px;
+  font-weight: var(--font-bold);
+  cursor: pointer;
+}
+
+/* Daily Journal Editor styles */
+.visual-journal-editor {
+  max-width: 500px !important;
+}
+
+.journal-fieldset {
+  border: 1.5px solid var(--line) !important;
+  border-radius: 18px !important;
+  padding: 14px 16px !important;
+  background: var(--cream) !important;
+  margin-bottom: 16px;
+}
+
+.visual-logger-container {
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.visual-logger-container h3 {
+  font-size: 15px;
+  font-weight: var(--font-heavy);
+  color: var(--ink);
+  margin: 0 0 14px;
+  border-bottom: 1.5px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.logger-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px dashed #efe5d9;
+}
+
+.logger-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.logger-label {
+  font-size: 13.5px;
+  font-weight: var(--font-bold);
+  color: var(--ink);
+}
+
+.logger-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.logger-options button {
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--muted);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: var(--font-semibold);
+  transition: all 0.2s ease;
+  min-height: 38px;
+}
+
+.logger-options button.active {
+  border-color: var(--brand);
+  background: #f0faf7;
+  color: var(--brand-dark);
+  box-shadow: 0 4px 10px rgba(111, 145, 167, 0.15);
 }

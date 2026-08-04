@@ -31,7 +31,7 @@ export function BroadcastCard({
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <h4 style={{ margin: 0, fontSize: '15px', color: '#173f3b', fontWeight: 'bold' }}>{hospital}</h4>
           {verified && (
-            <span className="hospital-verified-placeholder" style={{ color: '#4b9cd3', display: 'inline-flex', alignItems: 'center' }} title={t('officialHospital')} aria-label="認證標章 placeholder">
+            <span className="hospital-verified-placeholder" style={{ color: '#4b9cd3', display: 'inline-flex', alignItems: 'center' }} title={t('officialHospital')} aria-label={t('communityVerifiedPlaceholder')}>
               <SealCheck size={15} weight="fill" />
             </span>
           )}
