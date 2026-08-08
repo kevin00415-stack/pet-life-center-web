@@ -1,0 +1,28 @@
+{
+  "pose": {
+    "name": "RTMPose-m AP-10K",
+    "training_checkpoint_url": "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-ap10k_pt-aic-coco_210e-256x256-7a041aa1_20230206.pth",
+    "training_checkpoint_bytes": 54721413,
+    "training_checkpoint_sha256": "896e3665d849ef7eb9b6ec0995955796cc9810f024fa0aa0bdc18acb0d68bf52",
+    "deployment_archive_url": "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-m_simcc-ap10k_pt-aic-coco_210e-256x256-7a041aa1_20230206.zip",
+    "deployment_archive_bytes": 50709303,
+    "deployment_archive_sha256": "2d75445331cf2f21d6e164430f96ffa765cd874872965ae1736932dda03987f0",
+    "onnx_bytes": 54478120,
+    "onnx_sha256": "1cfd1c86e0d9e5d5f95178bcd95ee9a4e8386a624cd3c57519f27ff58cac7f28",
+    "input": "NCHW float32 1x3x256x256",
+    "outputs": ["simcc_x", "simcc_y"],
+    "keypoint_count": 17,
+    "license": "Apache-2.0 code/model distribution; AP-10K dataset is CC BY 4.0"
+  },
+  "detector": {
+    "name": "YOLOX-m COCO ONNX",
+    "source_url": "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_m.onnx",
+    "bytes": 101259744,
+    "sha256": "21ff6cfdeb53b013bac2249599e55f00bff3cfdfdab37ed7a4620818c1d15b3f",
+    "input": "NCHW float32 1x3x640x640",
+    "cat_class_id": 15,
+    "dog_class_id": 16,
+    "license": "Apache-2.0",
+    "note": "ONNX deployment substitute for the official MMPose animal alias RTMDet-m detector; pose checkpoint is unchanged."
+  }
+}

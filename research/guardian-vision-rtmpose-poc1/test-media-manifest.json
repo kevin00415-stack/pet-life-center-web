@@ -1,0 +1,32 @@
+[
+  {
+    "local_name": "dog-gait.ogv",
+    "source": "https://commons.wikimedia.org/wiki/File:Quantitative-Phenotyping-of-Duchenne-Muscular-Dystrophy-Dogs-by-Comprehensive-Gait-Analysis-and-pone.0059875.s001.ogv",
+    "license": "CC BY 3.0",
+    "purpose": "single-dog walking/gait response"
+  },
+  {
+    "local_name": "dog-trial.ogv",
+    "source": "https://commons.wikimedia.org/wiki/File:The-Importance-of-the-Secure-Base-Effect-for-Domestic-Dogs---Evidence-from-a-Manipulative-Problem-pone.0065296.s004.ogv",
+    "license": "Commons metadata is inconsistent (usage terms CC BY 3.0; structured data CC BY 2.5); evidence is supplemental only",
+    "purpose": "same trial, multiple camera views; supplemental detector stress test"
+  },
+  {
+    "local_name": "dog-sit.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Dog_Sit.jpg",
+    "license": "CC BY-SA 3.0",
+    "purpose": "dog sitting pose"
+  },
+  {
+    "local_name": "cat-playing.webm",
+    "source": "https://commons.wikimedia.org/wiki/File:Cat_playing_with_a_lizard.webm",
+    "license": "CC BY-SA 4.0",
+    "purpose": "single seated cat with head/forelimb motion"
+  },
+  {
+    "local_name": "cat-dog-multi.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Cats_and_dog.JPG",
+    "license": "public domain dedication",
+    "purpose": "real multi-animal cat/dog separation"
+  }
+]

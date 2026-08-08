@@ -1,0 +1,39 @@
+{
+  "same_dog": {
+    "subject": "Nora, Irish Wolfhound mix",
+    "identity_basis": "All three assets are grouped and named as Nora in the same Wikimedia Commons subject category.",
+    "category": "https://commons.wikimedia.org/wiki/Category:LiAnna_Davis%27s_dog_Nora",
+    "sitting": {
+      "source": "https://commons.wikimedia.org/wiki/File:Shaggy_dog_on_Bernal_Hill.jpg",
+      "license": "CC BY-SA 3.0",
+      "bytes": 484922,
+      "sha256": "f00ac4748f6ef8ca90fa8e0cffab73689dcc65313db6d42ff936acabf65ba689"
+    },
+    "standing": {
+      "source": "https://commons.wikimedia.org/wiki/File:Nora_at_Bernal_13.JPG",
+      "license": "CC BY-SA 3.0",
+      "bytes": 250265,
+      "sha256": "e24d438d143c4d1a6b3e7d301b65e6fa9cc0eaa46a3d2391354da3b8f4c0d007"
+    },
+    "walking": {
+      "source": "https://commons.wikimedia.org/wiki/File:Walking_from_a_dog%27s_residence_and_then_returning,_in_the_Mission_in_San_Francisco.ogv",
+      "license": "CC BY-SA 3.0",
+      "frame_bytes": 121633,
+      "frame_sha256": "3a43b2de1aef7aaca699943d02f642606e7e3633989e8ea3e1564885d3963f24"
+    }
+  },
+  "same_cat": {
+    "subject": "one continuous black-cat video",
+    "source": "https://commons.wikimedia.org/wiki/File:Black_Cat_walking.webm",
+    "license": "CC0",
+    "video_bytes": 2102081,
+    "video_sha256": "c8222c6ae8e66a8b0192e8d7c4ee849ba905c031e637b0f1e1faaaff36ecb6b1",
+    "available_poses": ["standing", "walking"],
+    "missing_pose": "sitting"
+  },
+  "multi_animal": {
+    "bytes": 877492,
+    "sha256": "731b28555e0b849c7f713c49f256d3ae7e14a43717b32fcf2d094a9329a4fd00",
+    "visible_animals": "4 cats and 1 dog"
+  }
+}

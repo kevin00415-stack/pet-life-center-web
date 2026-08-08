@@ -1,0 +1,24 @@
+{
+  "yolox_m": {
+    "role": "active PoC detector baseline",
+    "source": "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_m.onnx",
+    "bytes": 101259744,
+    "sha256": "21ff6cfdeb53b013bac2249599e55f00bff3cfdfdab37ed7a4620818c1d15b3f",
+    "license": "Apache-2.0",
+    "deployment_artifact": "official ONNX release artifact",
+    "classes": {
+      "cat": 15,
+      "dog": 16
+    }
+  },
+  "rtmdet_m": {
+    "role": "official MMPose animal-alias detector candidate",
+    "config_alias": "rtmdet-m",
+    "source": "https://download.openmmlab.com/mmdetection/v3.0/rtmdet/rtmdet_m_8xb32-300e_coco/rtmdet_m_8xb32-300e_coco_20220719_112220-229f527c.pth",
+    "reported_content_length_bytes": 224299609,
+    "reported_etag": "DDB325CBD9439D60924380E86E474B39",
+    "license": "Apache-2.0",
+    "deployment_status": "RTMDET DEPLOYMENT ARTIFACT BLOCKED",
+    "blocker": "Official training checkpoint exists, but no official directly consumable multiclass RTMDet-m ONNX artifact was identified for the current minimal Windows runtime. The PTH was not downloaded and no third-party export was substituted."
+  }
+}

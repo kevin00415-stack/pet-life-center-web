@@ -1,5 +1,8 @@
 # Dependencies and generated web output
 node_modules/
+.venv/
+__pycache__/
+*.py[cod]
 dist/
 dist-ssr/
 build/
@@ -48,6 +51,9 @@ qa-*.png
 prototype-*.png
 design-comparison.png
 edge-qa-profile/
+
+# Guardian Vision isolated PoC artifacts (models, public test media, inference output)
+/research/guardian-vision-rtmpose-poc1/artifacts/
 
 # Replaced source images (the app uses the WebP versions)
 /src/assets/home-island-v1.png
