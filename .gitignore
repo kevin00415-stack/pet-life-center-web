@@ -54,6 +54,7 @@ edge-qa-profile/
 
 # Guardian Vision isolated PoC artifacts (models, public test media, inference output)
 /research/guardian-vision-rtmpose-poc1/artifacts/
+/research/guardian-vision-motion-integration-poc2/artifacts/
 
 # Replaced source images (the app uses the WebP versions)
 /src/assets/home-island-v1.png

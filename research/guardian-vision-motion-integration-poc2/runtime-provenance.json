@@ -1,0 +1,31 @@
+{
+  "poc1_preservation": {
+    "branch": "codex/guardian-vision-rtmpose-poc1",
+    "commit": "07a94ba9d80d3d9a277b429ef145d126ad010d89",
+    "remote": "origin/codex/guardian-vision-rtmpose-poc1"
+  },
+  "frozen_guardian_runtime": {
+    "branch": "codex/guardian-motion-g3c-preservation",
+    "commit": "84d4bb834e40aa0650d77f373b289a82d6b7b159",
+    "usage": "read-only dynamic import during isolated PoC-2 validation",
+    "files": {
+      "src/features/guardian-motion/contracts.js": "d6c550d7bb072fd7952c437e96acc475274b50cc6fd35f40e23ed6296676e244",
+      "src/features/guardian-motion/estimator-adapter.js": "b6c334a06dc4fdab43cc16f743f691c1789bf7a13c94d2174c1538c98efa38a6",
+      "src/features/guardian-motion/skeleton-runtime.js": "1708c8b779b6403ff6188bb554af269e581ca90c4e2bf84cd9e7076ce564ee02",
+      "src/features/guardian-motion/geometry-runtime.js": "93096329022c9882d551401e2ec94ced86139e0936a89ce5e2dfcf6d8de4d3c6",
+      "src/features/guardian-motion/temporal-runtime.js": "a47a382b0edb35fe31218f0dd383620aaa2f341cacff9a912814d52185e15972",
+      "src/features/guardian-motion/motion-runtime.js": "27e5ebae7101768be9890fb2188b8ed1c18bdc1a3b05ca0cc547ced8c4c3fb09",
+      "src/features/guardian-motion/pixel-pose-estimator.js": "224a25d6bc0b6ea11276731e256387d8045f6965f7f7fd99f6d71d856c92e34f",
+      "src/features/guardian-baseline/feature-extractor.js": "2edbeb1bc06edd8ba4c5c19d35bda4074e9d371ae0f5a9272d5ee47a9fed6c54",
+      "src/features/guardian-baseline/comparison.js": "a40a0f7c9e05cb5315bc96fdc64b1ac0a6b0e9e87108e6c0759ea917d962c3f6",
+      "src/features/guardian-baseline/motion-dataset.js": "8b80f3f55fed5af35e47c2ec30a51ee7a502d7f9bf024fbc8d79912618048fbc"
+    }
+  },
+  "learned_provider": {
+    "provider_identity": "GUARDIAN_RTMPOSE_AP10K_EXPERIMENTAL",
+    "adapter_version": "guardian-learned-pose-adapter-v1",
+    "detector_identity": "yolox-m-coco-onnx-0.1.1rc0",
+    "pose_model_identity": "rtmpose-m-ap10k-20230206",
+    "confidence_semantics": "RAW_SIMCC_NOT_CALIBRATED_PROBABILITY"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "guardian-vision-poc2-evidence-manifest-v1",
+  "localVideo": {
+    "logicalName": "nora-walking-480p.webm",
+    "source": "https://commons.wikimedia.org/wiki/File:Walking_from_a_dog%27s_residence_and_then_returning,_in_the_Mission_in_San_Francisco.ogv",
+    "license": "CC BY-SA 3.0",
+    "bytes": 20381568,
+    "sha256": "d749b479e1da24543afcb1fdc6f49f67b585a8215166566b6a8d90f585c2a284"
+  },
+  "generatedArtifacts": {
+    "local-video-inference/predictions.json": {
+      "bytes": 81389,
+      "sha256": "c610e90213454f773febef16c2569abdf8aa1d20f442f3c0cf9da31f5cf8c5f9"
+    },
+    "results/poc2-integration-results.json": {
+      "bytes": 701247,
+      "sha256": "631756fbc1094a75615d0561d481f2ae7f240073f045cb03594fb6db344ad6cb"
+    },
+    "results/g3c-vs-learned.json": {
+      "bytes": 2973,
+      "sha256": "2825974a0f0f48b8e2192a86e2454189c2f3d7d65dbc4ed2c4306d81bc306a1c"
+    },
+    "baseline/nora-rgba-frames.json": {
+      "bytes": 402842,
+      "sha256": "c10aac6fe2f1bad96c61dd2847c4683ad642f381f48ba6c633ad5d1d0fc748fb",
+      "note": "Ignored local-only 96px RGBA comparison frames; never ingested into G2-C."
+    }
+  }
+}
