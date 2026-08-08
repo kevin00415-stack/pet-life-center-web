@@ -1,0 +1,49 @@
+{
+  "manifestVersion": "gbe-g2b-fixture-manifest-v1",
+  "manifestId": "synthetic-example-001",
+  "evidenceClass": "SYNTHETIC_RESULT",
+  "fixtures": [
+    {
+      "fixtureId": "synthetic-fixture-001",
+      "petId": "pet-synthetic-001",
+      "repeatGroupId": "pet-synthetic-001-mixed",
+      "repeatIndex": 1,
+      "species": "DOG",
+      "deviceType": "UNKNOWN_FUTURE",
+      "deviceAlias": "synthetic-device",
+      "lighting": "BRIGHT_INDOOR",
+      "camera": "STATIC",
+      "distance": "MEDIUM",
+      "view": "SIDE",
+      "visibility": "FULL_BODY",
+      "activity": "MIXED_ACTIVITY",
+      "length": "NORMAL",
+      "expectedQuality": "USABLE",
+      "source": {
+        "kind": "TECHNICAL_FRAME_JSON",
+        "localPath": "fixtures/synthetic-example.json"
+      }
+    },
+    {
+      "fixtureId": "synthetic-fixture-002",
+      "petId": "pet-synthetic-001",
+      "repeatGroupId": "pet-synthetic-001-mixed",
+      "repeatIndex": 2,
+      "species": "DOG",
+      "deviceType": "UNKNOWN_FUTURE",
+      "deviceAlias": "synthetic-device",
+      "lighting": "BRIGHT_INDOOR",
+      "camera": "STATIC",
+      "distance": "MEDIUM",
+      "view": "SIDE",
+      "visibility": "FULL_BODY",
+      "activity": "MIXED_ACTIVITY",
+      "length": "NORMAL",
+      "expectedQuality": "USABLE",
+      "source": {
+        "kind": "TECHNICAL_FRAME_JSON",
+        "localPath": "fixtures/synthetic-example.json"
+      }
+    }
+  ]
+}

@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run",
+    "test:guardian-motion": "node --test tests/guardian-motion-dataset.test.js tests/guardian-skeleton-runtime.test.js",
+    "dataset:g2c": "node scripts/run-g2c-motion-dataset.mjs",
     "preview": "vite preview",
     "native:sync": "npm run build && cap sync",
     "native:android": "npm run native:sync && cap open android",
