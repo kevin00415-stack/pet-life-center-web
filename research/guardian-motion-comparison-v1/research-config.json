@@ -1,0 +1,25 @@
+{
+  "contractVersion": "guardian-motion-comparison-v1",
+  "coreVersion": "guardian-motion-comparison-fail-closed-core-v0",
+  "executionMode": "FAIL_CLOSED_RESEARCH_ONLY",
+  "directionalOutputEnabled": false,
+  "policyStatus": {
+    "perSignalNeutralTolerance": "UNAPPROVED",
+    "minimumLandmarkOverlap": "UNAPPROVED",
+    "minimumUsableFrames": "UNAPPROVED",
+    "rejectedFrameLimit": "UNAPPROVED",
+    "minimumUsableDuration": "UNAPPROVED",
+    "safeRelativeDenominatorThreshold": "UNAPPROVED",
+    "numericSpeedPaceBandMapping": "UNAPPROVED",
+    "cryptographicDigestAlgorithm": "UNAPPROVED"
+  },
+  "forbiddenScopes": [
+    "PRODUCTION_INTEGRATION",
+    "CALIBRATION",
+    "PRODUCT_CONTEXT",
+    "TREATMENT_CONTEXT",
+    "MEDICAL_INTERPRETATION",
+    "RAW_MEDIA",
+    "USER_DATA"
+  ]
+}
